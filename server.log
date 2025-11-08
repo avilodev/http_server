@@ -1,0 +1,240 @@
+[2025-11-08 22:14:45] [INFO] Server starting - PID: 10949
+[2025-11-08 22:14:45] [INFO] Initializing cache tree for: /home/ubuntu/server
+[2025-11-08 22:14:45] [INFO] Server initialized successfully
+[2025-11-08 22:15:15] [INFO] Server shutdown initiated
+[2025-11-08 22:15:15] [INFO] Server shutdown complete
+[2025-11-08 22:15:30] [INFO] Server starting - PID: 11097
+[2025-11-08 22:15:30] [INFO] Initializing cache tree for: /home/ubuntu/server
+[2025-11-08 22:15:30] [INFO] Server initialized successfully
+[2025-11-08 22:15:33] [INFO] New HTTPS connection from 172.68.244.178:9427
+[2025-11-08 22:15:33] [DEBUG] SSL handshake successful
+[2025-11-08 22:15:33] [DEBUG] Received 863 bytes from client
+[2025-11-08 22:15:33] [INFO] Request from 172.68.244.178:9427 - GET / HTTP/1.1
+[2025-11-08 22:15:33] [DEBUG] === Client Request ===
+[2025-11-08 22:15:33] [DEBUG] GET / HTTP/1.1
+[2025-11-08 22:15:33] [DEBUG] Host: avilo.dev
+[2025-11-08 22:15:33] [DEBUG] Connection: keep-alive
+[2025-11-08 22:15:33] [DEBUG] ETag: 0
+[2025-11-08 22:15:33] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-08 22:15:33] [DEBUG] SSL: 1
+[2025-11-08 22:15:33] [DEBUG] =====================
+[2025-11-08 22:15:33] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-08 22:15:33] [INFO] Sent 1228 bytes (status 200)
+[2025-11-08 22:15:42] [INFO] New HTTPS connection from 172.68.244.178:12528
+[2025-11-08 22:15:42] [DEBUG] SSL handshake successful
+[2025-11-08 22:15:42] [DEBUG] Received 854 bytes from client
+[2025-11-08 22:15:42] [INFO] Request from 172.68.244.178:12528 - GET /videos/reset.html HTTP/1.1
+[2025-11-08 22:15:42] [DEBUG] === Client Request ===
+[2025-11-08 22:15:42] [DEBUG] GET /videos/reset.html HTTP/1.1
+[2025-11-08 22:15:42] [DEBUG] Host: avilo.dev
+[2025-11-08 22:15:42] [DEBUG] Connection: keep-alive
+[2025-11-08 22:15:42] [DEBUG] ETag: 0
+[2025-11-08 22:15:42] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-08 22:15:42] [DEBUG] SSL: 1
+[2025-11-08 22:15:42] [DEBUG] =====================
+[2025-11-08 22:15:42] [INFO] Resolved path: /home/ubuntu/server/webpages/videos/reset.html
+[2025-11-08 22:15:42] [WARN] File not found: /home/ubuntu/server/webpages/videos/reset.html
+[2025-11-08 22:15:42] [INFO] Sent error 404 to client
+[2025-11-08 22:15:52] [INFO] New HTTPS connection from 172.68.245.207:9582
+[2025-11-08 22:15:52] [DEBUG] SSL handshake successful
+[2025-11-08 22:15:52] [DEBUG] Received 853 bytes from client
+[2025-11-08 22:15:52] [INFO] Request from 172.68.245.207:9582 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-08 22:15:52] [DEBUG] === Client Request ===
+[2025-11-08 22:15:52] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-08 22:15:52] [DEBUG] Host: avilo.dev
+[2025-11-08 22:15:52] [DEBUG] Connection: keep-alive
+[2025-11-08 22:15:52] [DEBUG] ETag: 0
+[2025-11-08 22:15:52] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-08 22:15:52] [DEBUG] SSL: 1
+[2025-11-08 22:15:52] [DEBUG] =====================
+[2025-11-08 22:15:52] [INFO] Resolved path: /home/ubuntu/server/webpages/videos/reset.mp4
+[2025-11-08 22:15:52] [INFO] Sent 15193037 bytes (status 200)
+[2025-11-08 22:22:40] [INFO] New HTTPS connection from 172.70.42.101:13306
+[2025-11-08 22:22:40] [DEBUG] SSL handshake successful
+[2025-11-08 22:22:40] [DEBUG] Received 883 bytes from client
+[2025-11-08 22:22:40] [INFO] Request from 172.70.42.101:13306 - GET /video.html HTTP/1.1
+[2025-11-08 22:22:40] [DEBUG] === Client Request ===
+[2025-11-08 22:22:40] [DEBUG] GET /video.html HTTP/1.1
+[2025-11-08 22:22:40] [DEBUG] Host: avilo.dev
+[2025-11-08 22:22:40] [DEBUG] Connection: keep-alive
+[2025-11-08 22:22:40] [DEBUG] ETag: 0
+[2025-11-08 22:22:40] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-08 22:22:40] [DEBUG] SSL: 1
+[2025-11-08 22:22:40] [DEBUG] =====================
+[2025-11-08 22:22:40] [INFO] Resolved path: /home/ubuntu/server/webpages/video.html
+[2025-11-08 22:22:40] [INFO] Sent 7863 bytes (status 200)
+[2025-11-08 22:23:11] [INFO] Server shutdown initiated
+[2025-11-08 22:23:11] [INFO] Server shutdown complete
+[2025-11-08 14:46:33] [INFO] Server starting - PID: 8741
+[2025-11-08 14:46:33] [INFO] Initializing cache tree for: /home/ubuntu/server
+[2025-11-08 14:46:33] [ERROR] Failed to initialize cache tree
+[2025-11-08 14:47:13] [INFO] Server starting - PID: 8758
+[2025-11-08 14:47:13] [INFO] Initializing cache tree for: /home/ubuntu/server
+[2025-11-08 14:47:13] [ERROR] Failed to initialize cache tree
+[2025-11-08 14:47:29] [INFO] Server starting - PID: 8803
+[2025-11-08 14:47:29] [INFO] Initializing cache tree for: /home/remote/server
+[2025-11-08 14:47:29] [INFO] Server initialized successfully
+[2025-11-08 14:47:36] [INFO] New HTTP connection from 192.168.1.20:53595
+[2025-11-08 14:47:36] [DEBUG] Received 405 bytes from client
+[2025-11-08 14:47:36] [INFO] Request from 192.168.1.20:53595 - GET / HTTP/1.1
+[2025-11-08 14:47:36] [DEBUG] === Client Request ===
+[2025-11-08 14:47:36] [DEBUG] GET / HTTP/1.1
+[2025-11-08 14:47:36] [DEBUG] Host: pi3.local
+[2025-11-08 14:47:36] [DEBUG] Connection: keep-alive
+[2025-11-08 14:47:36] [DEBUG] ETag: 0
+[2025-11-08 14:47:36] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-08 14:47:36] [DEBUG] SSL: 0
+[2025-11-08 14:47:36] [DEBUG] =====================
+[2025-11-08 14:47:36] [INFO] Redirecting to HTTPS: https://pi3.local/
+[2025-11-08 14:47:36] [INFO] Sent 301 redirect to https://pi3.local/
+[2025-11-08 14:47:36] [INFO] New HTTPS connection from 192.168.1.20:59254
+[2025-11-08 14:47:37] [ERROR] SSL handshake failed
+[2025-11-08 14:47:40] [INFO] New HTTPS connection from 192.168.1.20:14715
+[2025-11-08 14:47:40] [ERROR] SSL handshake failed
+[2025-11-08 14:47:40] [INFO] New HTTPS connection from 192.168.1.20:29430
+[2025-11-08 14:47:40] [DEBUG] SSL handshake successful
+[2025-11-08 14:47:40] [DEBUG] Received 658 bytes from client
+[2025-11-08 14:47:40] [INFO] Request from 192.168.1.20:29430 - GET / HTTP/1.1
+[2025-11-08 14:47:40] [DEBUG] === Client Request ===
+[2025-11-08 14:47:40] [DEBUG] GET / HTTP/1.1
+[2025-11-08 14:47:40] [DEBUG] Host: pi3.local
+[2025-11-08 14:47:40] [DEBUG] Connection: keep-alive
+[2025-11-08 14:47:40] [DEBUG] ETag: 0
+[2025-11-08 14:47:40] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-08 14:47:40] [DEBUG] SSL: 1
+[2025-11-08 14:47:40] [DEBUG] =====================
+[2025-11-08 14:47:40] [INFO] Resolved path: /home/remote/server/webpages/landing.html
+[2025-11-08 14:47:40] [INFO] Sent 1228 bytes (status 200)
+[2025-11-08 14:47:40] [INFO] New HTTPS connection from 192.168.1.20:38513
+[2025-11-08 14:47:40] [ERROR] SSL handshake failed
+[2025-11-08 14:47:40] [INFO] New HTTPS connection from 192.168.1.20:30890
+[2025-11-08 14:47:41] [DEBUG] SSL handshake successful
+[2025-11-08 14:47:41] [DEBUG] Received 593 bytes from client
+[2025-11-08 14:47:41] [INFO] Request from 192.168.1.20:30890 - GET /favicon.ico HTTP/1.1
+[2025-11-08 14:47:41] [DEBUG] === Client Request ===
+[2025-11-08 14:47:41] [DEBUG] GET /favicon.ico HTTP/1.1
+[2025-11-08 14:47:41] [DEBUG] Host: pi3.local
+[2025-11-08 14:47:41] [DEBUG] Connection: keep-alive
+[2025-11-08 14:47:41] [DEBUG] ETag: 0
+[2025-11-08 14:47:41] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-08 14:47:41] [DEBUG] SSL: 1
+[2025-11-08 14:47:41] [DEBUG] =====================
+[2025-11-08 14:47:41] [INFO] Resolved path: /home/remote/server/webpages/favicon.ico
+[2025-11-08 14:47:41] [INFO] Sent 545 bytes (status 200)
+[2025-11-08 14:47:53] [INFO] New HTTPS connection from 192.168.1.20:9221
+[2025-11-08 14:47:54] [ERROR] SSL handshake failed
+[2025-11-08 14:47:54] [INFO] New HTTPS connection from 192.168.1.20:2248
+[2025-11-08 14:47:54] [ERROR] SSL handshake failed
+[2025-11-08 14:47:54] [INFO] New HTTPS connection from 192.168.1.20:59808
+[2025-11-08 14:47:54] [DEBUG] SSL handshake successful
+[2025-11-08 14:47:54] [INFO] New HTTPS connection from 192.168.1.20:50692
+[2025-11-08 14:47:54] [DEBUG] Received 648 bytes from client
+[2025-11-08 14:47:54] [INFO] Request from 192.168.1.20:59808 - GET /videos/reset.pm4 HTTP/1.1
+[2025-11-08 14:47:54] [DEBUG] === Client Request ===
+[2025-11-08 14:47:54] [DEBUG] GET /videos/reset.pm4 HTTP/1.1
+[2025-11-08 14:47:54] [DEBUG] Host: pi3.local
+[2025-11-08 14:47:54] [DEBUG] Connection: keep-alive
+[2025-11-08 14:47:54] [DEBUG] ETag: 0
+[2025-11-08 14:47:54] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-08 14:47:54] [DEBUG] SSL: 1
+[2025-11-08 14:47:54] [DEBUG] =====================
+[2025-11-08 14:47:54] [INFO] Resolved path: /home/remote/server/webpages/videos/reset.pm4
+[2025-11-08 14:47:54] [WARN] File not found: /home/remote/server/webpages/videos/reset.pm4
+[2025-11-08 14:47:54] [INFO] Sent error 404 to client
+[2025-11-08 14:47:54] [DEBUG] SSL handshake successful
+[2025-11-08 14:47:54] [INFO] New HTTPS connection from 192.168.1.20:45267
+[2025-11-08 14:47:54] [DEBUG] Received 609 bytes from client
+[2025-11-08 14:47:54] [INFO] Request from 192.168.1.20:50692 - GET /favicon.ico HTTP/1.1
+[2025-11-08 14:47:54] [DEBUG] === Client Request ===
+[2025-11-08 14:47:54] [DEBUG] GET /favicon.ico HTTP/1.1
+[2025-11-08 14:47:54] [DEBUG] Host: pi3.local
+[2025-11-08 14:47:54] [DEBUG] Connection: keep-alive
+[2025-11-08 14:47:54] [DEBUG] ETag: 0
+[2025-11-08 14:47:54] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-08 14:47:54] [DEBUG] SSL: 1
+[2025-11-08 14:47:54] [DEBUG] =====================
+[2025-11-08 14:47:54] [INFO] Resolved path: /home/remote/server/webpages/favicon.ico
+[2025-11-08 14:47:54] [INFO] Sent 545 bytes (status 200)
+[2025-11-08 14:47:54] [ERROR] SSL handshake failed
+[2025-11-08 14:47:58] [INFO] New HTTPS connection from 192.168.1.20:36782
+[2025-11-08 14:47:58] [ERROR] SSL handshake failed
+[2025-11-08 14:47:58] [INFO] New HTTPS connection from 192.168.1.20:40417
+[2025-11-08 14:47:59] [DEBUG] SSL handshake successful
+[2025-11-08 14:47:59] [DEBUG] Received 648 bytes from client
+[2025-11-08 14:47:59] [INFO] Request from 192.168.1.20:40417 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-08 14:47:59] [DEBUG] === Client Request ===
+[2025-11-08 14:47:59] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-08 14:47:59] [DEBUG] Host: pi3.local
+[2025-11-08 14:47:59] [DEBUG] Connection: keep-alive
+[2025-11-08 14:47:59] [DEBUG] ETag: 0
+[2025-11-08 14:47:59] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-08 14:47:59] [DEBUG] SSL: 1
+[2025-11-08 14:47:59] [DEBUG] =====================
+[2025-11-08 14:47:59] [INFO] Resolved path: /home/remote/server/webpages/videos/reset.mp4
+[2025-11-08 14:47:59] [INFO] Client disconnected (sent 327680/15193037 bytes)
+[2025-11-08 14:47:59] [INFO] New HTTPS connection from 192.168.1.20:25087
+[2025-11-08 14:47:59] [ERROR] SSL handshake failed
+[2025-11-08 14:47:59] [INFO] New HTTPS connection from 192.168.1.20:63610
+[2025-11-08 14:47:59] [DEBUG] SSL handshake successful
+[2025-11-08 14:47:59] [DEBUG] Received 566 bytes from client
+[2025-11-08 14:47:59] [INFO] Request from 192.168.1.20:63610 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-08 14:47:59] [DEBUG] === Client Request ===
+[2025-11-08 14:47:59] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-08 14:47:59] [DEBUG] Host: pi3.local
+[2025-11-08 14:47:59] [DEBUG] Connection: keep-alive
+[2025-11-08 14:47:59] [DEBUG] ETag: 0
+[2025-11-08 14:47:59] [DEBUG] Range: 1 (start=0, end=-1)
+[2025-11-08 14:47:59] [DEBUG] SSL: 1
+[2025-11-08 14:47:59] [DEBUG] =====================
+[2025-11-08 14:47:59] [INFO] Resolved path: /home/remote/server/webpages/videos/reset.mp4
+[2025-11-08 14:48:03] [INFO] New HTTPS connection from 192.168.1.20:26958
+[2025-11-08 14:48:03] [INFO] Client disconnected (sent 9437184/15193037 bytes)
+[2025-11-08 14:48:03] [ERROR] SSL handshake failed
+[2025-11-08 14:48:03] [INFO] New HTTPS connection from 192.168.1.20:55472
+[2025-11-08 14:48:03] [DEBUG] SSL handshake successful
+[2025-11-08 14:48:03] [DEBUG] Received 572 bytes from client
+[2025-11-08 14:48:03] [INFO] Request from 192.168.1.20:55472 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-08 14:48:03] [DEBUG] === Client Request ===
+[2025-11-08 14:48:03] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-08 14:48:03] [DEBUG] Host: pi3.local
+[2025-11-08 14:48:03] [DEBUG] Connection: keep-alive
+[2025-11-08 14:48:03] [DEBUG] ETag: 0
+[2025-11-08 14:48:03] [DEBUG] Range: 1 (start=9764864, end=-1)
+[2025-11-08 14:48:03] [DEBUG] SSL: 1
+[2025-11-08 14:48:03] [DEBUG] =====================
+[2025-11-08 14:48:03] [INFO] Resolved path: /home/remote/server/webpages/videos/reset.mp4
+[2025-11-08 14:48:05] [INFO] Sent 5428173 bytes (status 206)
+[2025-11-08 14:48:05] [INFO] New HTTPS connection from 192.168.1.20:61103
+[2025-11-08 14:48:05] [ERROR] SSL handshake failed
+[2025-11-08 14:48:05] [INFO] New HTTPS connection from 192.168.1.20:6072
+[2025-11-08 14:48:05] [DEBUG] SSL handshake successful
+[2025-11-08 14:48:05] [DEBUG] Received 572 bytes from client
+[2025-11-08 14:48:05] [INFO] Request from 192.168.1.20:6072 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-08 14:48:05] [DEBUG] === Client Request ===
+[2025-11-08 14:48:05] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-08 14:48:05] [DEBUG] Host: pi3.local
+[2025-11-08 14:48:05] [DEBUG] Connection: keep-alive
+[2025-11-08 14:48:05] [DEBUG] ETag: 0
+[2025-11-08 14:48:05] [DEBUG] Range: 1 (start=9043968, end=-1)
+[2025-11-08 14:48:05] [DEBUG] SSL: 1
+[2025-11-08 14:48:05] [DEBUG] =====================
+[2025-11-08 14:48:05] [INFO] Resolved path: /home/remote/server/webpages/videos/reset.mp4
+[2025-11-08 14:48:05] [INFO] Client disconnected (sent 1376256/6149069 bytes)
+[2025-11-08 14:48:05] [INFO] New HTTPS connection from 192.168.1.20:13167
+[2025-11-08 14:48:06] [ERROR] SSL handshake failed
+[2025-11-08 14:48:06] [INFO] New HTTPS connection from 192.168.1.20:55969
+[2025-11-08 14:48:06] [DEBUG] SSL handshake successful
+[2025-11-08 14:48:06] [DEBUG] Received 573 bytes from client
+[2025-11-08 14:48:06] [INFO] Request from 192.168.1.20:55969 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-08 14:48:06] [DEBUG] === Client Request ===
+[2025-11-08 14:48:06] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-08 14:48:06] [DEBUG] Host: pi3.local
+[2025-11-08 14:48:06] [DEBUG] Connection: keep-alive
+[2025-11-08 14:48:06] [DEBUG] ETag: 0
+[2025-11-08 14:48:06] [DEBUG] Range: 1 (start=14843904, end=-1)
+[2025-11-08 14:48:06] [DEBUG] SSL: 1
+[2025-11-08 14:48:06] [DEBUG] =====================
+[2025-11-08 14:48:06] [INFO] Resolved path: /home/remote/server/webpages/videos/reset.mp4
+[2025-11-08 14:48:06] [INFO] Sent 349133 bytes (status 206)
+[2025-11-08 14:48:23] [INFO] Server shutdown initiated
+[2025-11-08 14:48:23] [INFO] Server shutdown complete

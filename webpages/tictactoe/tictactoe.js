@@ -146,7 +146,21 @@ createApp({
       computerMove();
       currentPlayer.value = 'X';
     };
-    
+   
+const back_to_home = async () => {
+    try {
+      const response = await fetch("/");
+      if (!response.ok) {
+        throw new Error(`Response status: ${response.status}`);
+      }
+
+      const json = await response.json();
+      console.log(json);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
+};
+
     const resetGame = () => {
       board.value = Array(9).fill('');
       currentPlayer.value = 'X';
@@ -159,7 +173,8 @@ createApp({
       currentPlayer,
       statusMessage,
       makeMove,
-      resetGame
+      resetGame,
+      back_to_home
     };
   }
 }).mount('#app');

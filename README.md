@@ -1,11 +1,54 @@
-This is a project that I'm working on in my freetime outside of schoolwork. 
+## Complete File Organization
+```
+server/
+├── Makefile
+├── src/
+│   ├── types.h              # Common structures (Client, ThreadArgs, etc.)
+│   ├── main.c               # Main loop, accept connections
+│   │
+│   ├── request.h            # Request parsing interface
+│   ├── request.c            # parse_http_request(), validate_path(), etc.
+│   │
+│   ├── response.h           # Response generation interface
+│   ├── response.c           # send_file_response(), send_error_response(), etc.
+│   │
+│   ├── ssl_handler.h        # SSL/TLS interface
+│   ├── ssl_handler.c        # init_openssl(), SSL context creation
+│   │
+│   ├── cache.h              # Cache interface
+│   ├── cache.c              # Cache lookup, tree management
+│   │
+│   ├── logger.h             # Logging interface
+│   ├── logger.c             # log_message(), log_request()
+│   │
+│   ├── thread_pool.h        # Thread pool interface
+│   ├── thread_pool.c        # Worker threads, work queue
+│   │
+│   ├── config.h             # Configuration interface
+│   ├── config.c             # Parse command line, config files
+│   │
+│   ├── utils.h              # Utility functions
+│   ├── utils.c              # get_content_type(), format_date(), etc.
+│   │
+│   └── node.h               # Node structure for parsing
+│       node.c
+│
+└── obj/                     # Build artifacts
 
-This project is meant to test and enhance my own skills in the world of C Sockets. I intend to update this project weekly unless stated otherwise. 
-It is meant to be a simple website that serves mulitple users at once. GET, HEAD, TRACE, and OPTIONS are currently supported.
 
-This is ALL public use although I do ask that you credit this project if you take/use any code. 
-
-You may ask, why? Any companies that see this may just take the code and use it server-side. That's okay. Give it a few years. It'll be outdated and they'll 
-  need someone to keep up with protocol design. That's where I come in. This website is meant to show my skills in protocol programming. Writing a protocol 
-  is one thing, implementing an existing one is another. This program can communicate with modern web browsers on port 80 and <redacted> and will continue to.
-  No need for the cloud, have the server hosted right where your headquarters are. 
+/**
+ * Brief one-line description of what the function does.
+ * 
+ * Longer detailed description if needed. Explain the purpose,
+ * behavior, and any important details about the function.
+ * Can span multiple lines.
+ * 
+ * @param param_name Description of the parameter
+ * @param another_param Description of another parameter
+ * 
+ * @return Description of return value (or @retval for specific values)
+ * 
+ * @note Additional notes or special information
+ * @warning Important warnings about usage
+ * @see Related functions or references
+ */
