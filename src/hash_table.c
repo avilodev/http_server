@@ -1,5 +1,17 @@
 #include "hash_table.h"
 
+/**
+ * Initializes a hash table and required memory.
+ *
+ * Allocates memory for the new hash table, length,
+ * for the slots of the hash table, and capacity. Also 
+ * allocates memory using table->entires. 
+ *
+ * @return Newly initialized hash table.
+ *
+ * @note Returns NULL for failure to allocate memory.
+ * @warning Caller must free the returned hash table
+ */
 ht* init_hash(void)
 {
     // Allocate space for hash table struct.
@@ -19,7 +31,23 @@ ht* init_hash(void)
     return table;
 }
 
+/**
+ * Takes a string and returns the resulting hash
+ *
+ * Uses a large prime number and every character of the 
+ * parameter to create a corresponding u_int64_t hash. Uses
+ * a mix of exponential and mulitplation logic.
+ *
+ * @param key Character string to be hashed
+ *
+ * @return Resulting u_int64_t hash
+ *
+ * @note Returns resulting hash, 0 otherwise.
+ */
 static uint64_t hash_key(const char* key) {
+    if(!key)
+        return 0;
+
     uint64_t hash = FNV_OFFSET;
     for (const char* p = key; *p; p++) {
         hash ^= (uint64_t)(unsigned char)(*p);
@@ -28,7 +56,23 @@ static uint64_t hash_key(const char* key) {
     return hash;
 }
 
-// Keep your existing static ht_set as is, but rename it
+/**
+ * Inputs the key into the hash table
+ *
+ * Finds an open index of the hash table and sets the ht_entry.
+ * Sets the index, key, and value. If value is already in the 
+ * database, it returns the already inserted key.
+ *
+ * @param entries Entry to be entered into the hash table. 
+ * @param capacity Capacity of the hash table.
+ * @param key Member of the ht used to set and retrieve values.
+ * @param value Retrieved value in the ht from the key.
+ * @param plength How many items are in the table.
+ * 
+ * @return Key from new hash table entry. NULL on allocation error
+ *
+ * @warning Does not sanitize inputs.
+ */
 static const char* ht_set_entry(ht_entry* entries, size_t capacity, 
                                  const char* key, void* value, size_t* plength) {
     uint64_t hash = hash_key(key);
@@ -57,7 +101,19 @@ static const char* ht_set_entry(ht_entry* entries, size_t capacity,
     return key;
 }
 
-// Add new public function
+/**
+ * Helper function for the ht_set_entry()
+ *
+ * @param table Hash table to insert value into.
+ * @param key Key to insert into the hash table on.
+ * @param value Value to be added into the table.
+ * 
+ * @return Returned value from ht_set_entry()
+ *
+ * @note Only sanitizes the hash table
+ *
+ * @see ht_set_entry()
+ */
 const char* ht_set(ht* table, const char* key, void* value) {
     if (table == NULL) {
         return NULL;
@@ -86,6 +142,16 @@ void* ht_get(ht* table, const char* key) {
     return NULL;
 }
 
+/**
+ * Deallocates the hash table object.
+ *
+ * Frees all MIME objects and key extensions. Also
+ * uses logic to make sure double frees don't occur. 
+ *
+ * @param table Hash table to free
+ *
+ * @note Only sanitizes the hash table
+ */
 void ht_destroy(ht* table) {
     if (table == NULL) return;
     

@@ -7,6 +7,7 @@
 #include "cache.h"
 #include "config.h"
 #include "mime.h"
+#include "api.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -188,6 +189,15 @@ void* handle_client_thread(void* arg) {
     }
     
     log_message(LOG_INFO, "Resolved path: %s", client->full_path);
+
+    //Check API endpoint
+    if (strncmp(client->path, "/api/", 5) == 0)
+    {
+        log_message(LOG_INFO, "API endpoint detected - %s", client->full_path);
+        handle_api_request(client);
+        free_client(client);
+        goto cleanup;
+    }
     
     // Check cache
     struct Node* cache_node = cache_lookup(args->tree_head, client->full_path);
@@ -401,6 +411,16 @@ int main(int argc, char** argv) {
         return 1;
     }
     
+    char mime_table_path[256];
+    sprintf(mime_table_path, "%s/misc/mime.types", SERVER_PATH);
+
+    mime_table = mime_init(mime_table_path);
+    if (mime_table == NULL) {
+        fprintf(stderr, "Failed to load MIME types\n");
+        return 1;
+    }
+    
+
     log_message(LOG_INFO, "Server initialized successfully");
     printf("=== Server Ready ===\n");
     printf("HTTP Port: %d\n", g_config.http_port);
@@ -409,17 +429,6 @@ int main(int argc, char** argv) {
     printf("Press Ctrl+C to shutdown\n");
     printf("Send SIGUSR1 (kill -USR1 %d) to refresh cache\n", getpid());
 
-    char mime_table_path[256];
-    sprintf(mime_table_path, "%s/misc/mime.types", SERVER_PATH);
-
-    printf("Initailizing Mime Table at: %s\n", mime_table_path);
-
-    mime_table = mime_init(mime_table_path);
-    if (mime_table == NULL) {
-        fprintf(stderr, "Failed to load MIME types\n");
-        return 1;
-    }
-    
     // Main server loop
     while (!g_shutdown) {
         // Handle cache refresh signal

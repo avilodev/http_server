@@ -21,4 +21,7 @@ const char* get_status_message(int code);
 char* format_http_date(time_t timestamp);
 char* get_current_http_date(void);
 
+void send_api_response(Client* client, int code, char* mime_type, char* body);
+
+
 #endif // RESPONSE_H

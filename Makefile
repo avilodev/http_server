@@ -10,7 +10,7 @@ BIN_DIR = bin
 # Source files (just the names)
 SOURCES = main.c request.c response.c ssl_handler.c cache.c \
           logger.c config.c utils.c node.c thread_pool.c    \
-		  hash_table.c mime.c
+		  hash_table.c mime.c api.c
 
 # Full paths
 SRC_FILES = $(addprefix $(SRC_DIR)/, $(SOURCES))
