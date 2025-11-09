@@ -544,3 +544,29 @@ int send_range_not_satisfiable(Client* client, off_t file_size) {
     log_message(LOG_INFO, "Sent 416 Range Not Satisfiable");
     return 0;
 }
+
+void send_api_response(Client* client, int code, char* mime_type, char* body)
+{
+    if(!client || !body)
+        return;
+
+    char headers[MAX_HEADER_SIZE];
+    int header_len = 0;
+    
+    header_len += sprintf(headers, "%s %d %s\r\n", client->version, code, get_status_message(code));
+    header_len += sprintf(headers + header_len, "Content-Type: %s\r\n", mime_type);
+    header_len += sprintf(headers + header_len, "Content-Length: %ld\r\n\r\n", strlen(body));
+    
+    if (client->is_ssl) {
+        SSL_write(client->ssl, headers, header_len);
+        SSL_write(client->ssl, body, strlen(body));
+    } else {
+        send(client->client_fd, headers, header_len, 0);
+        send(client->client_fd, body, strlen(body), 0);
+    }
+    
+    char log_str[SMALL_ALLOCATE];
+    sprintf(log_str, "Sent %d %s from API response", code, get_status_message(code));
+
+    log_message(LOG_INFO, log_str);
+}

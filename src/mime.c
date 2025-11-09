@@ -4,8 +4,20 @@
 #include <string.h>
 #include <ctype.h>
 
-// Trim leading and trailing whitespace
+/**
+ * Removes leading and trailing whitespace of a given string
+ *
+ * @param str String to be trimmed
+ *
+ * @return Successfully trimmed string
+ *
+ * @note Moves pointer in memory for beginning,
+ * and adds null character at end.
+ */
 static char* trim(char* str) {
+    if(!str)
+        return NULL;
+
     // Trim leading
     while (isspace((unsigned char)*str)) {
         str++;
@@ -25,6 +37,22 @@ static char* trim(char* str) {
     return str;
 }
 
+/**
+ * Read mime file and create hash table.
+ *
+ * Opens the hash table file and reads lines of the file.
+ * For every line that does not start with '#', add into hash table.
+ * Return created hash table, NULL if error.
+ *
+ * @param filepath Filepath to turn into a hash table of mimes.
+ *
+ * @return New hash table that holds mimes.
+ *
+ * @note Returns NULL if filepath doesn't open or memory doesn't initialize.
+ * @warning Must free entire hash table and mime_value attribute.
+ *
+ * @see init_hash(), trim()
+ */
 ht* mime_init(const char* filepath) {
     FILE* file = fopen(filepath, "r");
     if (file == NULL) {
@@ -124,6 +152,23 @@ ht* mime_init(const char* filepath) {
     return table;
 }
 
+/**
+ * Looks up mime extension in hash table
+ *
+ * Verifies both parameters and sanitizes extension requested by client.
+ * Then preforms a lookup in the hash table with the extension. Returns 
+ * the extension type on successful lookup, application/octet-stream if error.
+ *
+ * @param table Hash table of mime values and extensions
+ * @param extension Entire filepath requested by the client
+ *
+ * @return Mime extension if applicable, application/octet-stream otherwise
+ *
+ * @note Returns "application/octet-stream" if no value found or either param is NULL
+ * @note Input sanitization occurs in the function, can pass through entire strings.
+ *
+ * @see ht_get()
+ */
 const char* mime_get_type(ht* table, const char* extension) {
     if (table == NULL || extension == NULL) {
         return "application/octet-stream";
@@ -156,13 +201,24 @@ const char* mime_get_type(ht* table, const char* extension) {
     return "application/octet-stream";
 }
 
+/**
+ * Sanitization function for mime_get_type()
+ *
+ * @param table Hash table of mime values and extensions
+ * @param extension Entire filepath requested by the client
+ *
+ * @return mime_get_type() function
+ *
+ * @note Returns "application/octet-stream" if no value found or either param is NULL
+ * @note Input sanitization occurs in the function, can pass through entire strings.
+ *
+ * @see mime_get_type()
+ */
 const char* mime_get_type_from_filename(ht* table, const char* filename) {
     if (filename == NULL) {
         printf("filename is NULL\n");
         return "application/octet-stream";
     }
-    
-    printf("filename: %s\n", filename);
 
     // Find last dot in filename
     const char* ext = strrchr(filename, '.');
