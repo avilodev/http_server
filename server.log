@@ -1,0 +1,706 @@
+[2025-11-09 03:15:20] [INFO] Server starting - PID: 20231
+[2025-11-09 03:15:20] [INFO] Initializing cache tree for: /home/ubuntu/server
+[2025-11-09 03:15:20] [INFO] Server initialized successfully
+[2025-11-09 03:15:28] [INFO] New HTTP connection from 172.71.222.213:14029
+[2025-11-09 03:15:28] [DEBUG] Received 321 bytes from client
+[2025-11-09 03:15:28] [INFO] Request from 172.71.222.213:14029 - HEAD / HTTP/1.1
+[2025-11-09 03:15:28] [DEBUG] === Client Request ===
+[2025-11-09 03:15:28] [DEBUG] HEAD / HTTP/1.1
+[2025-11-09 03:15:28] [DEBUG] Host: avilo.dev
+[2025-11-09 03:15:28] [DEBUG] Connection: keep-alive
+[2025-11-09 03:15:28] [DEBUG] ETag: 0
+[2025-11-09 03:15:28] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:15:28] [DEBUG] SSL: 0
+[2025-11-09 03:15:28] [DEBUG] =====================
+[2025-11-09 03:15:28] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:15:28] [INFO] HEAD request - headers only
+[2025-11-09 03:15:47] [INFO] New HTTPS connection from 172.68.244.139:13849
+[2025-11-09 03:15:47] [DEBUG] SSL handshake successful
+[2025-11-09 03:15:47] [DEBUG] Received 845 bytes from client
+[2025-11-09 03:15:47] [INFO] Request from 172.68.244.139:13849 - GET /cat.jpeg HTTP/1.1
+[2025-11-09 03:15:47] [DEBUG] === Client Request ===
+[2025-11-09 03:15:47] [DEBUG] GET /cat.jpeg HTTP/1.1
+[2025-11-09 03:15:47] [DEBUG] Host: avilo.dev
+[2025-11-09 03:15:47] [DEBUG] Connection: keep-alive
+[2025-11-09 03:15:47] [DEBUG] ETag: 0
+[2025-11-09 03:15:47] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:15:47] [DEBUG] SSL: 1
+[2025-11-09 03:15:47] [DEBUG] =====================
+[2025-11-09 03:15:47] [INFO] Resolved path: /home/ubuntu/server/webpages/cat.jpeg
+[2025-11-09 03:15:47] [INFO] Sent 6286 bytes (status 200)
+[2025-11-09 03:16:01] [INFO] New HTTPS connection from 104.23.211.64:14309
+[2025-11-09 03:16:01] [DEBUG] SSL handshake successful
+[2025-11-09 03:16:01] [DEBUG] Received 844 bytes from client
+[2025-11-09 03:16:01] [INFO] Request from 104.23.211.64:14309 - GET /dog.jpg HTTP/1.1
+[2025-11-09 03:16:01] [DEBUG] === Client Request ===
+[2025-11-09 03:16:01] [DEBUG] GET /dog.jpg HTTP/1.1
+[2025-11-09 03:16:01] [DEBUG] Host: avilo.dev
+[2025-11-09 03:16:01] [DEBUG] Connection: keep-alive
+[2025-11-09 03:16:01] [DEBUG] ETag: 0
+[2025-11-09 03:16:01] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:16:01] [DEBUG] SSL: 1
+[2025-11-09 03:16:01] [DEBUG] =====================
+[2025-11-09 03:16:01] [INFO] Resolved path: /home/ubuntu/server/webpages/dog.jpg
+[2025-11-09 03:16:01] [INFO] Sent 7463 bytes (status 200)
+[2025-11-09 03:16:29] [INFO] New HTTPS connection from 162.158.79.180:9250
+[2025-11-09 03:16:29] [DEBUG] SSL handshake successful
+[2025-11-09 03:16:29] [DEBUG] Received 857 bytes from client
+[2025-11-09 03:16:29] [INFO] Request from 162.158.79.180:9250 - GET /tictactoe/index.html HTTP/1.1
+[2025-11-09 03:16:29] [DEBUG] === Client Request ===
+[2025-11-09 03:16:29] [DEBUG] GET /tictactoe/index.html HTTP/1.1
+[2025-11-09 03:16:29] [DEBUG] Host: avilo.dev
+[2025-11-09 03:16:29] [DEBUG] Connection: keep-alive
+[2025-11-09 03:16:29] [DEBUG] ETag: 0
+[2025-11-09 03:16:29] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:16:29] [DEBUG] SSL: 1
+[2025-11-09 03:16:29] [DEBUG] =====================
+[2025-11-09 03:16:29] [INFO] Resolved path: /home/ubuntu/server/webpages/tictactoe/index.html
+[2025-11-09 03:16:29] [INFO] Sent 2131 bytes (status 200)
+[2025-11-09 03:16:29] [INFO] New HTTPS connection from 172.71.195.20:14004
+[2025-11-09 03:16:29] [DEBUG] SSL handshake successful
+[2025-11-09 03:16:29] [INFO] New HTTPS connection from 172.68.245.200:9480
+[2025-11-09 03:16:29] [DEBUG] Received 777 bytes from client
+[2025-11-09 03:16:29] [INFO] Request from 172.71.195.20:14004 - GET /tictactoe/bulma.css HTTP/1.1
+[2025-11-09 03:16:29] [DEBUG] === Client Request ===
+[2025-11-09 03:16:29] [DEBUG] GET /tictactoe/bulma.css HTTP/1.1
+[2025-11-09 03:16:29] [DEBUG] Host: avilo.dev
+[2025-11-09 03:16:29] [DEBUG] Connection: keep-alive
+[2025-11-09 03:16:29] [DEBUG] ETag: 0
+[2025-11-09 03:16:29] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:16:29] [DEBUG] SSL: 1
+[2025-11-09 03:16:29] [DEBUG] =====================
+[2025-11-09 03:16:29] [INFO] Resolved path: /home/ubuntu/server/webpages/tictactoe/bulma.css
+[2025-11-09 03:16:29] [DEBUG] SSL handshake successful
+[2025-11-09 03:16:29] [INFO] New HTTPS connection from 172.71.223.90:10317
+[2025-11-09 03:16:29] [DEBUG] Received 777 bytes from client
+[2025-11-09 03:16:29] [INFO] Request from 172.68.245.200:9480 - GET /tictactoe/style.css HTTP/1.1
+[2025-11-09 03:16:29] [DEBUG] === Client Request ===
+[2025-11-09 03:16:29] [DEBUG] GET /tictactoe/style.css HTTP/1.1
+[2025-11-09 03:16:29] [DEBUG] Host: avilo.dev
+[2025-11-09 03:16:29] [DEBUG] Connection: keep-alive
+[2025-11-09 03:16:29] [DEBUG] ETag: 0
+[2025-11-09 03:16:29] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:16:29] [DEBUG] SSL: 1
+[2025-11-09 03:16:29] [DEBUG] =====================
+[2025-11-09 03:16:29] [INFO] Resolved path: /home/ubuntu/server/webpages/tictactoe/style.css
+[2025-11-09 03:16:29] [INFO] Sent 1225 bytes (status 200)
+[2025-11-09 03:16:29] [DEBUG] SSL handshake successful
+[2025-11-09 03:16:29] [DEBUG] Received 766 bytes from client
+[2025-11-09 03:16:29] [INFO] Request from 172.71.223.90:10317 - GET /tictactoe/tictactoe.js HTTP/1.1
+[2025-11-09 03:16:29] [DEBUG] === Client Request ===
+[2025-11-09 03:16:29] [DEBUG] GET /tictactoe/tictactoe.js HTTP/1.1
+[2025-11-09 03:16:29] [DEBUG] Host: avilo.dev
+[2025-11-09 03:16:29] [DEBUG] Connection: keep-alive
+[2025-11-09 03:16:29] [DEBUG] ETag: 0
+[2025-11-09 03:16:29] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:16:29] [DEBUG] SSL: 1
+[2025-11-09 03:16:29] [DEBUG] =====================
+[2025-11-09 03:16:29] [INFO] Resolved path: /home/ubuntu/server/webpages/tictactoe/tictactoe.js
+[2025-11-09 03:16:29] [INFO] Sent 4392 bytes (status 200)
+[2025-11-09 03:16:29] [INFO] Sent 763188 bytes (status 200)
+[2025-11-09 03:17:17] [INFO] New HTTP connection from 104.23.213.124:13233
+[2025-11-09 03:17:17] [DEBUG] Received 321 bytes from client
+[2025-11-09 03:17:17] [INFO] Request from 104.23.213.124:13233 - HEAD / HTTP/1.1
+[2025-11-09 03:17:17] [DEBUG] === Client Request ===
+[2025-11-09 03:17:17] [DEBUG] HEAD / HTTP/1.1
+[2025-11-09 03:17:17] [DEBUG] Host: avilo.dev
+[2025-11-09 03:17:17] [DEBUG] Connection: keep-alive
+[2025-11-09 03:17:17] [DEBUG] ETag: 0
+[2025-11-09 03:17:17] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:17:17] [DEBUG] SSL: 0
+[2025-11-09 03:17:17] [DEBUG] =====================
+[2025-11-09 03:17:17] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:17:17] [INFO] HEAD request - headers only
+[2025-11-09 03:18:08] [INFO] New HTTP connection from 172.71.190.240:12331
+[2025-11-09 03:18:08] [DEBUG] Received 327 bytes from client
+[2025-11-09 03:18:08] [INFO] Request from 172.71.190.240:12331 - HEAD /videos HTTP/1.1
+[2025-11-09 03:18:08] [DEBUG] === Client Request ===
+[2025-11-09 03:18:08] [DEBUG] HEAD /videos HTTP/1.1
+[2025-11-09 03:18:08] [DEBUG] Host: avilo.dev
+[2025-11-09 03:18:08] [DEBUG] Connection: keep-alive
+[2025-11-09 03:18:08] [DEBUG] ETag: 0
+[2025-11-09 03:18:08] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:18:08] [DEBUG] SSL: 0
+[2025-11-09 03:18:08] [DEBUG] =====================
+[2025-11-09 03:18:08] [INFO] Resolved path: /home/ubuntu/server/webpages/videos
+[2025-11-09 03:18:08] [INFO] HEAD request - headers only
+[2025-11-09 03:19:50] [INFO] New HTTPS connection from 172.70.34.18:9770
+[2025-11-09 03:19:50] [DEBUG] SSL handshake successful
+[2025-11-09 03:19:50] [DEBUG] Received 330 bytes from client
+[2025-11-09 03:19:50] [INFO] Request from 172.70.34.18:9770 - GET / HTTP/1.1
+[2025-11-09 03:19:50] [DEBUG] === Client Request ===
+[2025-11-09 03:19:50] [DEBUG] GET / HTTP/1.1
+[2025-11-09 03:19:50] [DEBUG] Host: avilo.dev
+[2025-11-09 03:19:50] [DEBUG] Connection: keep-alive
+[2025-11-09 03:19:50] [DEBUG] ETag: 0
+[2025-11-09 03:19:50] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:19:50] [DEBUG] SSL: 1
+[2025-11-09 03:19:50] [DEBUG] =====================
+[2025-11-09 03:19:50] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:19:50] [INFO] Sent 1228 bytes (status 200)
+[2025-11-09 03:20:00] [INFO] New HTTPS connection from 172.70.42.100:14074
+[2025-11-09 03:20:00] [DEBUG] SSL handshake successful
+[2025-11-09 03:20:00] [DEBUG] Received 337 bytes from client
+[2025-11-09 03:20:00] [INFO] Request from 172.70.42.100:14074 - GET /videos/ HTTP/1.1
+[2025-11-09 03:20:00] [DEBUG] === Client Request ===
+[2025-11-09 03:20:00] [DEBUG] GET /videos/ HTTP/1.1
+[2025-11-09 03:20:00] [DEBUG] Host: avilo.dev
+[2025-11-09 03:20:00] [DEBUG] Connection: keep-alive
+[2025-11-09 03:20:00] [DEBUG] ETag: 0
+[2025-11-09 03:20:00] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:20:00] [DEBUG] SSL: 1
+[2025-11-09 03:20:00] [DEBUG] =====================
+[2025-11-09 03:20:00] [INFO] Resolved path: /home/ubuntu/server/webpages/videos/
+[2025-11-09 03:20:00] [INFO] Sent 0 bytes (status 200)
+[2025-11-09 03:21:36] [INFO] New HTTPS connection from 162.158.79.180:11431
+[2025-11-09 03:21:36] [DEBUG] SSL handshake successful
+[2025-11-09 03:21:36] [DEBUG] Received 843 bytes from client
+[2025-11-09 03:21:36] [INFO] Request from 162.158.79.180:11431 - GET /videos HTTP/1.1
+[2025-11-09 03:21:36] [DEBUG] === Client Request ===
+[2025-11-09 03:21:36] [DEBUG] GET /videos HTTP/1.1
+[2025-11-09 03:21:36] [DEBUG] Host: avilo.dev
+[2025-11-09 03:21:36] [DEBUG] Connection: keep-alive
+[2025-11-09 03:21:36] [DEBUG] ETag: 0
+[2025-11-09 03:21:36] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:21:36] [DEBUG] SSL: 1
+[2025-11-09 03:21:36] [DEBUG] =====================
+[2025-11-09 03:21:36] [INFO] Resolved path: /home/ubuntu/server/webpages/videos
+[2025-11-09 03:21:36] [INFO] Sent 0 bytes (status 200)
+[2025-11-09 03:24:40] [INFO] New HTTP connection from 101.32.192.203:45234
+[2025-11-09 03:24:42] [WARN] Failed to read request or client disconnected
+[2025-11-09 03:24:43] [INFO] New HTTPS connection from 127.0.0.1:56632
+[2025-11-09 03:24:43] [ERROR] SSL handshake failed
+[2025-11-09 03:24:58] [INFO] New HTTPS connection from 127.0.0.1:51154
+[2025-11-09 03:24:58] [ERROR] SSL handshake failed
+[2025-11-09 03:25:07] [INFO] New HTTP connection from 172.71.183.127:13191
+[2025-11-09 03:25:07] [DEBUG] Received 624 bytes from client
+[2025-11-09 03:25:07] [INFO] Request from 172.71.183.127:13191 - GET / HTTP/1.1
+[2025-11-09 03:25:07] [DEBUG] === Client Request ===
+[2025-11-09 03:25:07] [DEBUG] GET / HTTP/1.1
+[2025-11-09 03:25:07] [DEBUG] Host: avilo.dev
+[2025-11-09 03:25:07] [DEBUG] Connection: keep-alive
+[2025-11-09 03:25:07] [DEBUG] ETag: 0
+[2025-11-09 03:25:07] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:25:07] [DEBUG] SSL: 0
+[2025-11-09 03:25:07] [DEBUG] =====================
+[2025-11-09 03:25:07] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:25:07] [INFO] Sent 1228 bytes (status 200)
+[2025-11-09 03:25:08] [INFO] New HTTPS connection from 127.0.0.1:42440
+[2025-11-09 03:25:08] [ERROR] SSL handshake failed
+[2025-11-09 03:25:45] [INFO] New HTTP connection from 103.252.89.75:48834
+[2025-11-09 03:25:45] [DEBUG] Received 41 bytes from client
+[2025-11-09 03:25:45] [INFO] Request from 103.252.89.75:48834 - GET / HTTP/1.1
+[2025-11-09 03:25:45] [DEBUG] === Client Request ===
+[2025-11-09 03:25:45] [DEBUG] GET / HTTP/1.1
+[2025-11-09 03:25:45] [DEBUG] Host: 3.129.14.235:80
+[2025-11-09 03:25:45] [DEBUG] Connection: keep-alive
+[2025-11-09 03:25:45] [DEBUG] ETag: 0
+[2025-11-09 03:25:45] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:25:45] [DEBUG] SSL: 0
+[2025-11-09 03:25:45] [DEBUG] =====================
+[2025-11-09 03:25:45] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:25:45] [INFO] Sent 1228 bytes (status 200)
+[2025-11-09 03:26:17] [INFO] New HTTP connection from 172.68.10.7:9454
+[2025-11-09 03:26:17] [DEBUG] Received 692 bytes from client
+[2025-11-09 03:26:17] [INFO] Request from 172.68.10.7:9454 - GET /wordpress/wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:26:17] [DEBUG] === Client Request ===
+[2025-11-09 03:26:17] [DEBUG] GET /wordpress/wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:26:17] [DEBUG] Host: avilo.dev
+[2025-11-09 03:26:17] [DEBUG] Connection: keep-alive
+[2025-11-09 03:26:17] [DEBUG] ETag: 0
+[2025-11-09 03:26:17] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:26:17] [DEBUG] SSL: 0
+[2025-11-09 03:26:17] [DEBUG] =====================
+[2025-11-09 03:26:17] [INFO] Resolved path: /home/ubuntu/server/webpages/wordpress/wp-admin/setup-config.php
+[2025-11-09 03:26:17] [WARN] File not found: /home/ubuntu/server/webpages/wordpress/wp-admin/setup-config.php
+[2025-11-09 03:26:17] [INFO] Sent error 404 to client
+[2025-11-09 03:26:22] [INFO] New HTTP connection from 216.180.246.141:21133
+[2025-11-09 03:26:22] [INFO] New HTTPS connection from 165.22.151.195:57980
+[2025-11-09 03:26:22] [ERROR] SSL handshake failed
+[2025-11-09 03:26:22] [INFO] New HTTPS connection from 165.22.151.195:57988
+[2025-11-09 03:26:23] [ERROR] SSL handshake failed
+[2025-11-09 03:26:23] [INFO] New HTTPS connection from 165.22.151.195:57998
+[2025-11-09 03:26:23] [ERROR] SSL handshake failed
+[2025-11-09 03:26:23] [INFO] New HTTPS connection from 165.22.151.195:58012
+[2025-11-09 03:26:23] [ERROR] SSL handshake failed
+[2025-11-09 03:26:23] [INFO] New HTTPS connection from 165.22.151.195:58026
+[2025-11-09 03:26:23] [ERROR] SSL handshake failed
+[2025-11-09 03:26:23] [INFO] New HTTPS connection from 165.22.151.195:58042
+[2025-11-09 03:26:23] [ERROR] SSL handshake failed
+[2025-11-09 03:26:23] [INFO] New HTTPS connection from 165.22.151.195:58052
+[2025-11-09 03:26:23] [DEBUG] Received 129 bytes from client
+[2025-11-09 03:26:23] [INFO] Request from 216.180.246.141:21133 - GET / HTTP/1.0
+[2025-11-09 03:26:23] [DEBUG] === Client Request ===
+[2025-11-09 03:26:23] [DEBUG] GET / HTTP/1.0
+[2025-11-09 03:26:23] [DEBUG] Host: (none)
+[2025-11-09 03:26:23] [DEBUG] Connection: close
+[2025-11-09 03:26:23] [DEBUG] ETag: 0
+[2025-11-09 03:26:23] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:26:23] [DEBUG] SSL: 0
+[2025-11-09 03:26:23] [DEBUG] =====================
+[2025-11-09 03:26:23] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:26:23] [INFO] Sent 1228 bytes (status 200)
+[2025-11-09 03:26:24] [ERROR] SSL handshake failed
+[2025-11-09 03:26:24] [INFO] New HTTPS connection from 165.22.151.195:58064
+[2025-11-09 03:26:24] [ERROR] SSL handshake failed
+[2025-11-09 03:26:24] [INFO] New HTTPS connection from 165.22.151.195:58072
+[2025-11-09 03:26:24] [ERROR] SSL handshake failed
+[2025-11-09 03:26:24] [INFO] New HTTPS connection from 165.22.151.195:58084
+[2025-11-09 03:26:24] [ERROR] SSL handshake failed
+[2025-11-09 03:26:24] [INFO] New HTTPS connection from 165.22.151.195:58090
+[2025-11-09 03:26:24] [DEBUG] SSL handshake successful
+[2025-11-09 03:26:24] [WARN] Failed to read request or client disconnected
+[2025-11-09 03:26:47] [INFO] New HTTP connection from 216.180.246.141:34260
+[2025-11-09 03:26:47] [DEBUG] Received 243 bytes from client
+[2025-11-09 03:26:47] [WARN] Malformed request line
+[2025-11-09 03:26:47] [INFO] Sent error 400 to client
+[2025-11-09 03:26:47] [ERROR] Failed to parse request
+[2025-11-09 03:27:33] [INFO] New HTTPS connection from 172.71.184.34:11931
+[2025-11-09 03:27:33] [DEBUG] SSL handshake successful
+[2025-11-09 03:27:33] [DEBUG] Received 700 bytes from client
+[2025-11-09 03:27:33] [INFO] Request from 172.71.184.34:11931 - GET /wordpress/wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:27:33] [DEBUG] === Client Request ===
+[2025-11-09 03:27:33] [DEBUG] GET /wordpress/wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:27:33] [DEBUG] Host: avilo.dev
+[2025-11-09 03:27:33] [DEBUG] Connection: keep-alive
+[2025-11-09 03:27:33] [DEBUG] ETag: 0
+[2025-11-09 03:27:33] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:27:33] [DEBUG] SSL: 1
+[2025-11-09 03:27:33] [DEBUG] =====================
+[2025-11-09 03:27:33] [INFO] Resolved path: /home/ubuntu/server/webpages/wordpress/wp-admin/setup-config.php
+[2025-11-09 03:27:33] [WARN] File not found: /home/ubuntu/server/webpages/wordpress/wp-admin/setup-config.php
+[2025-11-09 03:27:33] [INFO] Sent error 404 to client
+[2025-11-09 03:27:38] [INFO] New HTTPS connection from 172.68.10.7:10818
+[2025-11-09 03:27:38] [DEBUG] SSL handshake successful
+[2025-11-09 03:27:38] [DEBUG] Received 690 bytes from client
+[2025-11-09 03:27:38] [INFO] Request from 172.68.10.7:10818 - GET /wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:27:38] [DEBUG] === Client Request ===
+[2025-11-09 03:27:38] [DEBUG] GET /wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:27:38] [DEBUG] Host: avilo.dev
+[2025-11-09 03:27:38] [DEBUG] Connection: keep-alive
+[2025-11-09 03:27:38] [DEBUG] ETag: 0
+[2025-11-09 03:27:38] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:27:38] [DEBUG] SSL: 1
+[2025-11-09 03:27:38] [DEBUG] =====================
+[2025-11-09 03:27:38] [INFO] Resolved path: /home/ubuntu/server/webpages/wp-admin/setup-config.php
+[2025-11-09 03:27:38] [WARN] File not found: /home/ubuntu/server/webpages/wp-admin/setup-config.php
+[2025-11-09 03:27:38] [INFO] Sent error 404 to client
+[2025-11-09 03:28:12] [INFO] New HTTP connection from 216.180.246.141:35082
+[2025-11-09 03:28:13] [DEBUG] Received 172 bytes from client
+[2025-11-09 03:28:13] [INFO] Request from 216.180.246.141:35082 - GET / HTTP/1.1
+[2025-11-09 03:28:13] [DEBUG] === Client Request ===
+[2025-11-09 03:28:13] [DEBUG] GET / HTTP/1.1
+[2025-11-09 03:28:13] [DEBUG] Host: 3.129.14.235
+[2025-11-09 03:28:13] [DEBUG] Connection: keep-alive
+[2025-11-09 03:28:13] [DEBUG] ETag: 0
+[2025-11-09 03:28:13] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:28:13] [DEBUG] SSL: 0
+[2025-11-09 03:28:13] [DEBUG] =====================
+[2025-11-09 03:28:13] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:28:13] [INFO] Sent 1228 bytes (status 200)
+[2025-11-09 03:28:24] [INFO] New HTTP connection from 172.70.247.200:10176
+[2025-11-09 03:28:24] [DEBUG] Received 682 bytes from client
+[2025-11-09 03:28:24] [INFO] Request from 172.70.247.200:10176 - GET /wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:28:24] [DEBUG] === Client Request ===
+[2025-11-09 03:28:24] [DEBUG] GET /wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:28:24] [DEBUG] Host: avilo.dev
+[2025-11-09 03:28:24] [DEBUG] Connection: keep-alive
+[2025-11-09 03:28:24] [DEBUG] ETag: 0
+[2025-11-09 03:28:24] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:28:24] [DEBUG] SSL: 0
+[2025-11-09 03:28:24] [DEBUG] =====================
+[2025-11-09 03:28:24] [INFO] Resolved path: /home/ubuntu/server/webpages/wp-admin/setup-config.php
+[2025-11-09 03:28:24] [WARN] File not found: /home/ubuntu/server/webpages/wp-admin/setup-config.php
+[2025-11-09 03:28:24] [INFO] Sent error 404 to client
+[2025-11-09 03:28:31] [INFO] New HTTPS connection from 172.71.183.128:12986
+[2025-11-09 03:28:31] [DEBUG] SSL handshake successful
+[2025-11-09 03:28:31] [DEBUG] Received 630 bytes from client
+[2025-11-09 03:28:31] [INFO] Request from 172.71.183.128:12986 - GET / HTTP/1.1
+[2025-11-09 03:28:31] [DEBUG] === Client Request ===
+[2025-11-09 03:28:31] [DEBUG] GET / HTTP/1.1
+[2025-11-09 03:28:31] [DEBUG] Host: avilo.dev
+[2025-11-09 03:28:31] [DEBUG] Connection: keep-alive
+[2025-11-09 03:28:31] [DEBUG] ETag: 0
+[2025-11-09 03:28:31] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:28:31] [DEBUG] SSL: 1
+[2025-11-09 03:28:31] [DEBUG] =====================
+[2025-11-09 03:28:31] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:28:31] [INFO] Sent 1228 bytes (status 200)
+[2025-11-09 03:29:25] [INFO] New HTTPS connection from 172.71.102.139:13058
+[2025-11-09 03:29:25] [DEBUG] SSL handshake successful
+[2025-11-09 03:29:25] [DEBUG] Received 578 bytes from client
+[2025-11-09 03:29:25] [INFO] Request from 172.71.102.139:13058 - GET /favicon.ico HTTP/1.1
+[2025-11-09 03:29:25] [DEBUG] === Client Request ===
+[2025-11-09 03:29:25] [DEBUG] GET /favicon.ico HTTP/1.1
+[2025-11-09 03:29:25] [DEBUG] Host: avilo.dev
+[2025-11-09 03:29:25] [DEBUG] Connection: keep-alive
+[2025-11-09 03:29:25] [DEBUG] ETag: 0
+[2025-11-09 03:29:25] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:29:25] [DEBUG] SSL: 1
+[2025-11-09 03:29:25] [DEBUG] =====================
+[2025-11-09 03:29:25] [INFO] Resolved path: /home/ubuntu/server/webpages/favicon.ico
+[2025-11-09 03:29:25] [INFO] Sent 545 bytes (status 200)
+[2025-11-09 03:30:24] [INFO] New HTTPS connection from 172.71.95.22:13409
+[2025-11-09 03:30:24] [DEBUG] SSL handshake successful
+[2025-11-09 03:30:24] [DEBUG] Received 630 bytes from client
+[2025-11-09 03:30:24] [INFO] Request from 172.71.95.22:13409 - GET / HTTP/1.1
+[2025-11-09 03:30:24] [DEBUG] === Client Request ===
+[2025-11-09 03:30:24] [DEBUG] GET / HTTP/1.1
+[2025-11-09 03:30:24] [DEBUG] Host: avilo.dev
+[2025-11-09 03:30:24] [DEBUG] Connection: keep-alive
+[2025-11-09 03:30:24] [DEBUG] ETag: 0
+[2025-11-09 03:30:24] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:30:24] [DEBUG] SSL: 1
+[2025-11-09 03:30:24] [DEBUG] =====================
+[2025-11-09 03:30:24] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:30:24] [INFO] Sent 1228 bytes (status 200)
+[2025-11-09 03:30:35] [INFO] New HTTPS connection from 13.89.124.216:42498
+[2025-11-09 03:30:36] [DEBUG] SSL handshake successful
+[2025-11-09 03:30:36] [WARN] Failed to read request or client disconnected
+[2025-11-09 03:35:45] [INFO] Server shutdown initiated
+[2025-11-09 03:35:45] [INFO] Server shutdown complete
+[2025-11-09 03:35:50] [INFO] Server starting - PID: 22387
+[2025-11-09 03:35:50] [INFO] Initializing cache tree for: /home/ubuntu/server
+[2025-11-09 03:35:50] [INFO] Server initialized successfully
+[2025-11-09 03:36:15] [INFO] Server shutdown initiated
+[2025-11-09 03:36:15] [INFO] Server shutdown complete
+[2025-11-09 03:39:26] [INFO] Server starting - PID: 22814
+[2025-11-09 03:39:26] [INFO] Initializing cache tree for: /home/ubuntu/server
+[2025-11-09 03:39:26] [INFO] Server initialized successfully
+[2025-11-09 03:39:27] [INFO] New HTTPS connection from 75.131.41.144:6276
+[2025-11-09 03:39:27] [ERROR] SSL handshake failed
+[2025-11-09 03:39:27] [INFO] New HTTPS connection from 75.131.41.144:40954
+[2025-11-09 03:39:28] [DEBUG] SSL handshake successful
+[2025-11-09 03:39:28] [DEBUG] Received 677 bytes from client
+[2025-11-09 03:39:28] [INFO] Request from 75.131.41.144:40954 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:39:28] [DEBUG] === Client Request ===
+[2025-11-09 03:39:28] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:39:28] [DEBUG] Host: 3.129.14.235
+[2025-11-09 03:39:28] [DEBUG] Connection: keep-alive
+[2025-11-09 03:39:28] [DEBUG] ETag: 0
+[2025-11-09 03:39:28] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:39:28] [DEBUG] SSL: 1
+[2025-11-09 03:39:28] [DEBUG] =====================
+[2025-11-09 03:39:28] [INFO] Resolved path: /home/ubuntu/server/webpages/videos/reset.mp4
+[2025-11-09 03:39:28] [INFO] Client disconnected (sent 196608/15193037 bytes)
+[2025-11-09 03:39:28] [INFO] New HTTPS connection from 75.131.41.144:10980
+[2025-11-09 03:39:28] [ERROR] SSL handshake failed
+[2025-11-09 03:39:28] [INFO] New HTTPS connection from 75.131.41.144:14369
+[2025-11-09 03:39:28] [DEBUG] SSL handshake successful
+[2025-11-09 03:39:28] [DEBUG] Received 572 bytes from client
+[2025-11-09 03:39:28] [INFO] Request from 75.131.41.144:14369 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:39:28] [DEBUG] === Client Request ===
+[2025-11-09 03:39:28] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:39:28] [DEBUG] Host: 3.129.14.235
+[2025-11-09 03:39:28] [DEBUG] Connection: keep-alive
+[2025-11-09 03:39:28] [DEBUG] ETag: 0
+[2025-11-09 03:39:28] [DEBUG] Range: 1 (start=0, end=-1)
+[2025-11-09 03:39:28] [DEBUG] SSL: 1
+[2025-11-09 03:39:28] [DEBUG] =====================
+[2025-11-09 03:39:28] [INFO] Resolved path: /home/ubuntu/server/webpages/videos/reset.mp4
+[2025-11-09 03:39:34] [INFO] New HTTPS connection from 75.131.41.144:24734
+[2025-11-09 03:39:34] [ERROR] SSL handshake failed
+[2025-11-09 03:39:34] [INFO] Sent 15193037 bytes (status 206)
+[2025-11-09 03:39:42] [INFO] New HTTPS connection from 75.131.41.144:26419
+[2025-11-09 03:39:42] [ERROR] SSL handshake failed
+[2025-11-09 03:39:42] [INFO] New HTTPS connection from 75.131.41.144:12145
+[2025-11-09 03:39:42] [DEBUG] SSL handshake successful
+[2025-11-09 03:39:42] [DEBUG] Received 677 bytes from client
+[2025-11-09 03:39:42] [INFO] Request from 75.131.41.144:12145 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:39:42] [DEBUG] === Client Request ===
+[2025-11-09 03:39:42] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:39:42] [DEBUG] Host: 3.129.14.235
+[2025-11-09 03:39:42] [DEBUG] Connection: keep-alive
+[2025-11-09 03:39:42] [DEBUG] ETag: 0
+[2025-11-09 03:39:42] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:39:42] [DEBUG] SSL: 1
+[2025-11-09 03:39:42] [DEBUG] =====================
+[2025-11-09 03:39:42] [INFO] Resolved path: /home/ubuntu/server/webpages/videos/reset.mp4
+[2025-11-09 03:39:42] [INFO] Client disconnected (sent 196608/15193037 bytes)
+[2025-11-09 03:39:42] [INFO] New HTTPS connection from 75.131.41.144:58624
+[2025-11-09 03:39:42] [ERROR] SSL handshake failed
+[2025-11-09 03:39:42] [INFO] New HTTPS connection from 75.131.41.144:23796
+[2025-11-09 03:39:42] [DEBUG] SSL handshake successful
+[2025-11-09 03:39:42] [DEBUG] Received 572 bytes from client
+[2025-11-09 03:39:42] [INFO] Request from 75.131.41.144:23796 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:39:42] [DEBUG] === Client Request ===
+[2025-11-09 03:39:42] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:39:42] [DEBUG] Host: 3.129.14.235
+[2025-11-09 03:39:42] [DEBUG] Connection: keep-alive
+[2025-11-09 03:39:42] [DEBUG] ETag: 0
+[2025-11-09 03:39:42] [DEBUG] Range: 1 (start=0, end=-1)
+[2025-11-09 03:39:42] [DEBUG] SSL: 1
+[2025-11-09 03:39:42] [DEBUG] =====================
+[2025-11-09 03:39:42] [INFO] Resolved path: /home/ubuntu/server/webpages/videos/reset.mp4
+[2025-11-09 03:40:01] [INFO] Client disconnected (sent 14680064/15193037 bytes)
+[2025-11-09 03:44:42] [INFO] New HTTPS connection from 172.71.150.176:11886
+[2025-11-09 03:44:42] [DEBUG] SSL handshake successful
+[2025-11-09 03:44:42] [DEBUG] Received 890 bytes from client
+[2025-11-09 03:44:42] [INFO] Request from 172.71.150.176:11886 - GET / HTTP/1.1
+[2025-11-09 03:44:42] [DEBUG] === Client Request ===
+[2025-11-09 03:44:42] [DEBUG] GET / HTTP/1.1
+[2025-11-09 03:44:42] [DEBUG] Host: avilo.dev
+[2025-11-09 03:44:42] [DEBUG] Connection: keep-alive
+[2025-11-09 03:44:42] [DEBUG] ETag: 0
+[2025-11-09 03:44:42] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:44:42] [DEBUG] SSL: 1
+[2025-11-09 03:44:42] [DEBUG] =====================
+[2025-11-09 03:44:42] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:44:42] [INFO] Sent 1228 bytes (status 200)
+[2025-11-09 03:46:09] [INFO] New HTTP connection from 162.158.6.154:11983
+[2025-11-09 03:46:09] [DEBUG] Received 424 bytes from client
+[2025-11-09 03:46:09] [INFO] Request from 162.158.6.154:11983 - GET /robots.txt HTTP/1.1
+[2025-11-09 03:46:09] [DEBUG] === Client Request ===
+[2025-11-09 03:46:09] [DEBUG] GET /robots.txt HTTP/1.1
+[2025-11-09 03:46:09] [DEBUG] Host: avilo.dev
+[2025-11-09 03:46:09] [DEBUG] Connection: keep-alive
+[2025-11-09 03:46:09] [DEBUG] ETag: 0
+[2025-11-09 03:46:09] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:46:09] [DEBUG] SSL: 0
+[2025-11-09 03:46:09] [DEBUG] =====================
+[2025-11-09 03:46:09] [INFO] Resolved path: /home/ubuntu/server/webpages/robots.txt
+[2025-11-09 03:46:09] [WARN] File not found: /home/ubuntu/server/webpages/robots.txt
+[2025-11-09 03:46:09] [INFO] Sent error 404 to client
+[2025-11-09 03:46:09] [INFO] New HTTP connection from 162.158.38.109:9847
+[2025-11-09 03:46:09] [DEBUG] Received 414 bytes from client
+[2025-11-09 03:46:09] [INFO] Request from 162.158.38.109:9847 - GET / HTTP/1.1
+[2025-11-09 03:46:09] [DEBUG] === Client Request ===
+[2025-11-09 03:46:09] [DEBUG] GET / HTTP/1.1
+[2025-11-09 03:46:09] [DEBUG] Host: avilo.dev
+[2025-11-09 03:46:09] [DEBUG] Connection: keep-alive
+[2025-11-09 03:46:09] [DEBUG] ETag: 0
+[2025-11-09 03:46:09] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:46:09] [DEBUG] SSL: 0
+[2025-11-09 03:46:09] [DEBUG] =====================
+[2025-11-09 03:46:09] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:46:09] [INFO] Sent 1228 bytes (status 200)
+[2025-11-09 03:46:36] [INFO] New HTTPS connection from 172.68.10.6:11434
+[2025-11-09 03:46:36] [DEBUG] SSL handshake successful
+[2025-11-09 03:46:36] [DEBUG] Received 688 bytes from client
+[2025-11-09 03:46:36] [INFO] Request from 172.68.10.6:11434 - GET /wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:46:36] [DEBUG] === Client Request ===
+[2025-11-09 03:46:36] [DEBUG] GET /wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:46:36] [DEBUG] Host: avilo.dev
+[2025-11-09 03:46:36] [DEBUG] Connection: keep-alive
+[2025-11-09 03:46:36] [DEBUG] ETag: 0
+[2025-11-09 03:46:36] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:46:36] [DEBUG] SSL: 1
+[2025-11-09 03:46:36] [DEBUG] =====================
+[2025-11-09 03:46:36] [INFO] Resolved path: /home/ubuntu/server/webpages/wp-admin/setup-config.php
+[2025-11-09 03:46:36] [WARN] File not found: /home/ubuntu/server/webpages/wp-admin/setup-config.php
+[2025-11-09 03:46:36] [INFO] Sent error 404 to client
+[2025-11-09 03:48:11] [INFO] New HTTP connection from 172.68.138.150:9587
+[2025-11-09 03:48:11] [DEBUG] Received 321 bytes from client
+[2025-11-09 03:48:11] [INFO] Request from 172.68.138.150:9587 - HEAD / HTTP/1.1
+[2025-11-09 03:48:11] [DEBUG] === Client Request ===
+[2025-11-09 03:48:11] [DEBUG] HEAD / HTTP/1.1
+[2025-11-09 03:48:11] [DEBUG] Host: avilo.dev
+[2025-11-09 03:48:11] [DEBUG] Connection: keep-alive
+[2025-11-09 03:48:11] [DEBUG] ETag: 0
+[2025-11-09 03:48:11] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:48:11] [DEBUG] SSL: 0
+[2025-11-09 03:48:11] [DEBUG] =====================
+[2025-11-09 03:48:11] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:48:11] [INFO] HEAD request - headers only
+[2025-11-09 03:48:33] [INFO] New HTTPS connection from 172.71.190.241:13864
+[2025-11-09 03:48:33] [DEBUG] SSL handshake successful
+[2025-11-09 03:48:33] [DEBUG] Received 642 bytes from client
+[2025-11-09 03:48:33] [INFO] Request from 172.71.190.241:13864 - GET / HTTP/1.1
+[2025-11-09 03:48:33] [DEBUG] === Client Request ===
+[2025-11-09 03:48:33] [DEBUG] GET / HTTP/1.1
+[2025-11-09 03:48:33] [DEBUG] Host: avilo.dev
+[2025-11-09 03:48:33] [DEBUG] Connection: keep-alive
+[2025-11-09 03:48:33] [DEBUG] ETag: 0
+[2025-11-09 03:48:33] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:48:33] [DEBUG] SSL: 1
+[2025-11-09 03:48:33] [DEBUG] =====================
+[2025-11-09 03:48:33] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:48:33] [INFO] Sent 1228 bytes (status 200)
+[2025-11-09 03:48:33] [INFO] New HTTPS connection from 172.71.190.241:13872
+[2025-11-09 03:48:33] [DEBUG] SSL handshake successful
+[2025-11-09 03:48:33] [DEBUG] Received 638 bytes from client
+[2025-11-09 03:48:33] [INFO] Request from 172.71.190.241:13872 - GET /favicon.ico HTTP/1.1
+[2025-11-09 03:48:33] [DEBUG] === Client Request ===
+[2025-11-09 03:48:33] [DEBUG] GET /favicon.ico HTTP/1.1
+[2025-11-09 03:48:33] [DEBUG] Host: avilo.dev
+[2025-11-09 03:48:33] [DEBUG] Connection: keep-alive
+[2025-11-09 03:48:33] [DEBUG] ETag: 0
+[2025-11-09 03:48:33] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:48:33] [DEBUG] SSL: 1
+[2025-11-09 03:48:33] [DEBUG] =====================
+[2025-11-09 03:48:33] [INFO] Resolved path: /home/ubuntu/server/webpages/favicon.ico
+[2025-11-09 03:48:33] [INFO] Sent 545 bytes (status 200)
+[2025-11-09 03:48:36] [INFO] New HTTPS connection from 172.71.190.241:13877
+[2025-11-09 03:48:36] [DEBUG] SSL handshake successful
+[2025-11-09 03:48:36] [DEBUG] Received 692 bytes from client
+[2025-11-09 03:48:36] [INFO] Request from 172.71.190.241:13877 - GET / HTTP/1.1
+[2025-11-09 03:48:36] [DEBUG] === Client Request ===
+[2025-11-09 03:48:36] [DEBUG] GET / HTTP/1.1
+[2025-11-09 03:48:36] [DEBUG] Host: avilo.dev
+[2025-11-09 03:48:36] [DEBUG] Connection: keep-alive
+[2025-11-09 03:48:36] [DEBUG] ETag: 0
+[2025-11-09 03:48:36] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:48:36] [DEBUG] SSL: 1
+[2025-11-09 03:48:36] [DEBUG] =====================
+[2025-11-09 03:48:36] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:48:36] [INFO] Resource not modified (If-Modified-Since) - sending 304
+[2025-11-09 03:48:36] [INFO] Sent 304 Not Modified
+[2025-11-09 03:48:55] [INFO] New HTTP connection from 172.68.10.7:9835
+[2025-11-09 03:48:55] [DEBUG] Received 684 bytes from client
+[2025-11-09 03:48:55] [INFO] Request from 172.68.10.7:9835 - GET /wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:48:55] [DEBUG] === Client Request ===
+[2025-11-09 03:48:55] [DEBUG] GET /wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:48:55] [DEBUG] Host: avilo.dev
+[2025-11-09 03:48:55] [DEBUG] Connection: keep-alive
+[2025-11-09 03:48:55] [DEBUG] ETag: 0
+[2025-11-09 03:48:55] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:48:55] [DEBUG] SSL: 0
+[2025-11-09 03:48:55] [DEBUG] =====================
+[2025-11-09 03:48:55] [INFO] Resolved path: /home/ubuntu/server/webpages/wp-admin/setup-config.php
+[2025-11-09 03:48:55] [WARN] File not found: /home/ubuntu/server/webpages/wp-admin/setup-config.php
+[2025-11-09 03:48:55] [INFO] Sent error 404 to client
+[2025-11-09 03:49:09] [INFO] New HTTP connection from 172.71.184.35:13265
+[2025-11-09 03:49:09] [DEBUG] Received 694 bytes from client
+[2025-11-09 03:49:09] [INFO] Request from 172.71.184.35:13265 - GET /wordpress/wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:49:09] [DEBUG] === Client Request ===
+[2025-11-09 03:49:09] [DEBUG] GET /wordpress/wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:49:09] [DEBUG] Host: avilo.dev
+[2025-11-09 03:49:09] [DEBUG] Connection: keep-alive
+[2025-11-09 03:49:09] [DEBUG] ETag: 0
+[2025-11-09 03:49:09] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:49:09] [DEBUG] SSL: 0
+[2025-11-09 03:49:09] [DEBUG] =====================
+[2025-11-09 03:49:09] [INFO] Resolved path: /home/ubuntu/server/webpages/wordpress/wp-admin/setup-config.php
+[2025-11-09 03:49:09] [WARN] File not found: /home/ubuntu/server/webpages/wordpress/wp-admin/setup-config.php
+[2025-11-09 03:49:09] [INFO] Sent error 404 to client
+[2025-11-09 03:49:53] [INFO] New HTTPS connection from 172.68.10.6:10618
+[2025-11-09 03:49:53] [DEBUG] SSL handshake successful
+[2025-11-09 03:49:53] [DEBUG] Received 698 bytes from client
+[2025-11-09 03:49:53] [INFO] Request from 172.68.10.6:10618 - GET /wordpress/wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:49:53] [DEBUG] === Client Request ===
+[2025-11-09 03:49:53] [DEBUG] GET /wordpress/wp-admin/setup-config.php HTTP/1.1
+[2025-11-09 03:49:53] [DEBUG] Host: avilo.dev
+[2025-11-09 03:49:53] [DEBUG] Connection: keep-alive
+[2025-11-09 03:49:53] [DEBUG] ETag: 0
+[2025-11-09 03:49:53] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:49:53] [DEBUG] SSL: 1
+[2025-11-09 03:49:53] [DEBUG] =====================
+[2025-11-09 03:49:53] [INFO] Resolved path: /home/ubuntu/server/webpages/wordpress/wp-admin/setup-config.php
+[2025-11-09 03:49:53] [WARN] File not found: /home/ubuntu/server/webpages/wordpress/wp-admin/setup-config.php
+[2025-11-09 03:49:53] [INFO] Sent error 404 to client
+[2025-11-09 03:50:04] [INFO] New HTTPS connection from 104.23.211.227:10799
+[2025-11-09 03:50:04] [DEBUG] SSL handshake successful
+[2025-11-09 03:50:04] [DEBUG] Received 837 bytes from client
+[2025-11-09 03:50:04] [INFO] Request from 104.23.211.227:10799 - GET / HTTP/1.1
+[2025-11-09 03:50:04] [DEBUG] === Client Request ===
+[2025-11-09 03:50:04] [DEBUG] GET / HTTP/1.1
+[2025-11-09 03:50:04] [DEBUG] Host: avilo.dev
+[2025-11-09 03:50:04] [DEBUG] Connection: keep-alive
+[2025-11-09 03:50:04] [DEBUG] ETag: 0
+[2025-11-09 03:50:04] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:50:04] [DEBUG] SSL: 1
+[2025-11-09 03:50:04] [DEBUG] =====================
+[2025-11-09 03:50:04] [INFO] Resolved path: /home/ubuntu/server/webpages/landing.html
+[2025-11-09 03:50:04] [INFO] Sent 1228 bytes (status 200)
+[2025-11-09 03:50:04] [INFO] New HTTPS connection from 104.23.211.226:12224
+[2025-11-09 03:50:04] [DEBUG] SSL handshake successful
+[2025-11-09 03:50:04] [DEBUG] Received 798 bytes from client
+[2025-11-09 03:50:04] [INFO] Request from 104.23.211.226:12224 - GET /favicon.ico HTTP/1.1
+[2025-11-09 03:50:04] [DEBUG] === Client Request ===
+[2025-11-09 03:50:04] [DEBUG] GET /favicon.ico HTTP/1.1
+[2025-11-09 03:50:04] [DEBUG] Host: avilo.dev
+[2025-11-09 03:50:04] [DEBUG] Connection: keep-alive
+[2025-11-09 03:50:04] [DEBUG] ETag: 0
+[2025-11-09 03:50:04] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:50:04] [DEBUG] SSL: 1
+[2025-11-09 03:50:04] [DEBUG] =====================
+[2025-11-09 03:50:04] [INFO] Resolved path: /home/ubuntu/server/webpages/favicon.ico
+[2025-11-09 03:50:04] [INFO] Sent 545 bytes (status 200)
+[2025-11-09 03:50:06] [INFO] New HTTPS connection from 104.23.211.226:12232
+[2025-11-09 03:50:06] [DEBUG] SSL handshake successful
+[2025-11-09 03:50:06] [DEBUG] Received 886 bytes from client
+[2025-11-09 03:50:06] [INFO] Request from 104.23.211.226:12232 - GET /capybara.html HTTP/1.1
+[2025-11-09 03:50:06] [DEBUG] === Client Request ===
+[2025-11-09 03:50:06] [DEBUG] GET /capybara.html HTTP/1.1
+[2025-11-09 03:50:06] [DEBUG] Host: avilo.dev
+[2025-11-09 03:50:06] [DEBUG] Connection: keep-alive
+[2025-11-09 03:50:06] [DEBUG] ETag: 0
+[2025-11-09 03:50:06] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:50:06] [DEBUG] SSL: 1
+[2025-11-09 03:50:06] [DEBUG] =====================
+[2025-11-09 03:50:06] [INFO] Resolved path: /home/ubuntu/server/webpages/capybara.html
+[2025-11-09 03:50:06] [INFO] Sent 1841 bytes (status 200)
+[2025-11-09 03:50:18] [INFO] New HTTPS connection from 104.23.211.227:13364
+[2025-11-09 03:50:18] [DEBUG] SSL handshake successful
+[2025-11-09 03:50:18] [DEBUG] Received 853 bytes from client
+[2025-11-09 03:50:18] [INFO] Request from 104.23.211.227:13364 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:50:18] [DEBUG] === Client Request ===
+[2025-11-09 03:50:18] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:50:18] [DEBUG] Host: avilo.dev
+[2025-11-09 03:50:18] [DEBUG] Connection: keep-alive
+[2025-11-09 03:50:18] [DEBUG] ETag: 0
+[2025-11-09 03:50:18] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:50:18] [DEBUG] SSL: 1
+[2025-11-09 03:50:18] [DEBUG] =====================
+[2025-11-09 03:50:18] [INFO] Resolved path: /home/ubuntu/server/webpages/videos/reset.mp4
+[2025-11-09 03:50:18] [INFO] Client disconnected (sent 5570560/15193037 bytes)
+[2025-11-09 03:50:18] [INFO] New HTTPS connection from 104.23.211.226:12349
+[2025-11-09 03:50:18] [DEBUG] SSL handshake successful
+[2025-11-09 03:50:18] [DEBUG] Received 770 bytes from client
+[2025-11-09 03:50:18] [INFO] Request from 104.23.211.226:12349 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:50:18] [DEBUG] === Client Request ===
+[2025-11-09 03:50:18] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:50:18] [DEBUG] Host: avilo.dev
+[2025-11-09 03:50:18] [DEBUG] Connection: keep-alive
+[2025-11-09 03:50:18] [DEBUG] ETag: 0
+[2025-11-09 03:50:18] [DEBUG] Range: 1 (start=0, end=-1)
+[2025-11-09 03:50:18] [DEBUG] SSL: 1
+[2025-11-09 03:50:18] [DEBUG] =====================
+[2025-11-09 03:50:18] [INFO] Resolved path: /home/ubuntu/server/webpages/videos/reset.mp4
+[2025-11-09 03:50:19] [INFO] Sent 15193037 bytes (status 206)
+[2025-11-09 03:50:31] [INFO] New HTTPS connection from 104.23.211.226:12314
+[2025-11-09 03:50:31] [DEBUG] SSL handshake successful
+[2025-11-09 03:50:31] [DEBUG] Received 953 bytes from client
+[2025-11-09 03:50:31] [INFO] Request from 104.23.211.226:12314 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:50:31] [DEBUG] === Client Request ===
+[2025-11-09 03:50:31] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:50:31] [DEBUG] Host: avilo.dev
+[2025-11-09 03:50:31] [DEBUG] Connection: keep-alive
+[2025-11-09 03:50:31] [DEBUG] ETag: 0
+[2025-11-09 03:50:31] [DEBUG] Range: 1 (start=0, end=1048575)
+[2025-11-09 03:50:31] [DEBUG] SSL: 1
+[2025-11-09 03:50:31] [DEBUG] =====================
+[2025-11-09 03:50:31] [INFO] Resolved path: /home/ubuntu/server/webpages/videos/reset.mp4
+[2025-11-09 03:50:31] [INFO] Resource not modified (If-Modified-Since) - sending 304
+[2025-11-09 03:50:31] [INFO] Sent 304 Not Modified
+[2025-11-09 03:50:35] [INFO] New HTTPS connection from 104.23.211.227:12926
+[2025-11-09 03:50:35] [DEBUG] SSL handshake successful
+[2025-11-09 03:50:35] [DEBUG] Received 843 bytes from client
+[2025-11-09 03:50:35] [INFO] Request from 104.23.211.227:12926 - GET /videos HTTP/1.1
+[2025-11-09 03:50:35] [DEBUG] === Client Request ===
+[2025-11-09 03:50:35] [DEBUG] GET /videos HTTP/1.1
+[2025-11-09 03:50:35] [DEBUG] Host: avilo.dev
+[2025-11-09 03:50:35] [DEBUG] Connection: keep-alive
+[2025-11-09 03:50:35] [DEBUG] ETag: 0
+[2025-11-09 03:50:35] [DEBUG] Range: 0 (start=0, end=-1)
+[2025-11-09 03:50:35] [DEBUG] SSL: 1
+[2025-11-09 03:50:35] [DEBUG] =====================
+[2025-11-09 03:50:35] [INFO] Resolved path: /home/ubuntu/server/webpages/videos
+[2025-11-09 03:50:35] [INFO] Sent 0 bytes (status 200)
+[2025-11-09 03:50:41] [INFO] New HTTPS connection from 104.23.211.226:13932
+[2025-11-09 03:50:41] [DEBUG] SSL handshake successful
+[2025-11-09 03:50:41] [DEBUG] Received 927 bytes from client
+[2025-11-09 03:50:41] [INFO] Request from 104.23.211.226:13932 - GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:50:41] [DEBUG] === Client Request ===
+[2025-11-09 03:50:41] [DEBUG] GET /videos/reset.mp4 HTTP/1.1
+[2025-11-09 03:50:41] [DEBUG] Host: avilo.dev
+[2025-11-09 03:50:41] [DEBUG] Connection: keep-alive
+[2025-11-09 03:50:41] [DEBUG] ETag: 0
+[2025-11-09 03:50:41] [DEBUG] Range: 1 (start=0, end=1048575)
+[2025-11-09 03:50:41] [DEBUG] SSL: 1
+[2025-11-09 03:50:41] [DEBUG] =====================
+[2025-11-09 03:50:41] [INFO] Resolved path: /home/ubuntu/server/webpages/videos/reset.mp4
+[2025-11-09 03:50:41] [INFO] Resource not modified (If-Modified-Since) - sending 304
+[2025-11-09 03:50:41] [INFO] Sent 304 Not Modified
+[2025-11-09 03:51:59] [INFO] Server shutdown initiated
+[2025-11-09 03:51:59] [INFO] Server shutdown complete

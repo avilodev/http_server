@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport">
+  <title>Tic Tac Toe</title>
+  <link rel="stylesheet" href="./bulma.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div id="app" class="section has-text-centered">
+    <h1 class="title">Tic Tac Toe</h1>
+
+    <table class="game-table">
+      <tbody>
+        <tr>
+          <td name="cell-0-0" class="cell">
+            <button class="cell-0-0" @click="makeMove(0)">{{ board[0] }}</button>
+          </td>
+          <td name="cell-0-1" class="cell">
+            <button class="cell-0-1" @click="makeMove(1)">{{ board[1] }}</button>
+          </td>
+          <td name="cell-0-2" class="cell">
+            <button class="cell-0-2" @click="makeMove(2)">{{ board[2] }}</button>
+          </td>
+        </tr>
+        <tr>
+          <td name="cell-1-0" class="cell">
+            <button class="cell-1-0" @click="makeMove(3)">{{ board[3] }}</button>
+          </td>
+          <td name="cell-1-1" class="cell">
+            <button class="cell-1-1" @click="makeMove(4)">{{ board[4] }}</button>
+          </td>
+          <td name="cell-1-2" class="cell">
+            <button class="cell-1-2" @click="makeMove(5)">{{ board[5] }}</button>
+          </td>
+        </tr>
+        <tr>
+          <td name="cell-2-0" class="cell">
+            <button class="cell-2-0" @click="makeMove(6)">{{ board[6] }}</button>
+          </td>
+          <td name="cell-2-1" class="cell">
+            <button class="cell-2-1" @click="makeMove(7)">{{ board[7] }}</button>
+          </td>
+          <td name="cell-2-2" class="cell">
+            <button class="cell-2-2" @click="makeMove(8)">{{ board[8] }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 class="subtitle">{{ statusMessage }}</h3>
+    <button name="reset" class="reset" @click="resetGame()">Restart Game</button>
+    <button name="back_to_home" class="back_to_home" @click="back_to_home()">Back to Home</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script src="./tictactoe.js"></script>
+</body>
+</html>

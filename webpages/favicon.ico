@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background Circle -->
+  <circle cx="50" cy="50" r="45" fill="#2a2a2a" />
+  
+  <!-- Inner Design -->
+  <path d="M65,35c0-8.28-6.72-15-15-15s-15,6.72-15,15c0,5.64,3.12,10.54,7.72,13.1L35,65c0,8.28,6.72,15,15,15s15-6.72,15-15c0-5.64-3.12-10.54-7.72-13.1L65,35z" 
+        fill="none" stroke="#4ecdc4" stroke-width="5" stroke-linecap="round" />
+  
+  <!-- Accent Circles -->
+  <circle cx="65" cy="35" r="5" fill="#ff6b6b" />
+  <circle cx="35" cy="65" r="5" fill="#ff6b6b" />
+</svg>

@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Video File Tree Viewer</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; padding: 20px; background:#f7f8fb; margin:0; }
+  .container { max-width:1400px; margin: 0 auto; display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
+  .card { background:white; padding:20px; border-radius:8px; box-shadow:0 6px 18px rgba(20,20,40,0.06); }
+  h1, h2 { margin-top:0 }
+  label { display:block; margin:10px 0 6px; font-weight:600; font-size:14px; }
+  input[type=text] { width:100%; box-sizing:border-box; padding:10px; border-radius:6px; border:1px solid #e0e6ef; font-family:monospace; font-size:13px; }
+  button { padding:10px 14px; border-radius:6px; border:0; background:#0066cc; color:#fff; cursor:pointer; font-size:14px; margin-top:10px; }
+  button:hover { background:#0052a3; }
+  .muted { color:#666; font-size:13px; }
+  
+  /* Tree styles */
+  .tree { margin-top:15px; }
+  .tree-node { margin-left:20px; }
+  .tree-folder { cursor:pointer; user-select:none; padding:4px 0; }
+  .tree-folder:hover { background:#f0f4f8; }
+  .tree-file { cursor:pointer; padding:4px 8px; margin:2px 0; border-radius:4px; color:#0066cc; }
+  .tree-file:hover { background:#e6f2ff; }
+  .folder-icon { display:inline-block; width:16px; }
+  .folder-name { font-weight:600; color:#333; }
+  .file-name { color:#0066cc; }
+  .collapsed { display:none; }
+  
+  /* Video player */
+  .video-container { position:sticky; top:20px; }
+  video { width:100%; max-height:500px; border-radius:8px; background:#000; }
+  .video-info { margin-top:10px; padding:10px; background:#f3f6fb; border-radius:6px; font-size:13px; }
+  .no-video { text-align:center; padding:60px 20px; color:#999; }
+  
+  @media (max-width: 1000px) {
+    .container { grid-template-columns: 1fr; }
+    .video-container { position:relative; top:0; }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Video File Browser</h1>
+      
+      <label for="endpoint">API Endpoint (GET request)</label>
+      <input id="endpoint" type="text" value="/api/videos" />
+
+      <button id="fetchBtn">Fetch Videos</button>
+      
+      <div class="muted" style="margin-top:8px">Status: <span id="status">—</span></div>
+
+      <h2 style="margin-top:25px">File Tree</h2>
+      <div id="tree" class="tree"></div>
+    </div>
+
+    <div class="card video-container">
+      <h2>Video Player</h2>
+      <div id="videoPlayer">
+        <div class="no-video">Click on a video file to play</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const endpointEl = document.getElementById('endpoint');
+  const statusEl = document.getElementById('status');
+  const treeEl = document.getElementById('tree');
+  const videoPlayerEl = document.getElementById('videoPlayer');
+
+  let videoData = null;
+
+  // Parse file paths and build tree structure
+  function buildTree(files) {
+    const tree = {};
+    
+    files.forEach(item => {
+      // Handle both string paths and objects with path property
+      let filepath;
+      if (typeof item === 'string') {
+        filepath = item;
+      } else if (item && item.path) {
+        filepath = item.path;
+      } else if (item && item.filepath) {
+        filepath = item.filepath;
+      } else if (item && item.name) {
+        filepath = item.name;
+      } else {
+        console.warn('Unknown file item format:', item);
+        return;
+      }
+      
+      const parts = filepath.split('/').filter(p => p);
+      let current = tree;
+      
+      parts.forEach((part, idx) => {
+        if (idx === parts.length - 1) {
+          // It's a file
+          if (!current._files) current._files = [];
+          current._files.push({ name: part, path: filepath });
+        } else {
+          // It's a folder
+          if (!current[part]) current[part] = {};
+          current = current[part];
+        }
+      });
+    });
+    
+    return tree;
+  }
+
+  // Render tree recursively
+  function renderTree(tree, parentEl, level = 0) {
+    Object.keys(tree).sort().forEach(key => {
+      if (key === '_files') return; // Handle files separately
+      
+      const folderDiv = document.createElement('div');
+      folderDiv.className = 'tree-node';
+      
+      const folderHeader = document.createElement('div');
+      folderHeader.className = 'tree-folder';
+      folderHeader.innerHTML = `<span class="folder-icon">📁</span> <span class="folder-name">${key}</span>`;
+      
+      const childrenDiv = document.createElement('div');
+      childrenDiv.className = 'tree-children';
+      
+      folderHeader.addEventListener('click', () => {
+        childrenDiv.classList.toggle('collapsed');
+        folderHeader.querySelector('.folder-icon').textContent = 
+          childrenDiv.classList.contains('collapsed') ? '📁' : '📂';
+      });
+      
+      folderDiv.appendChild(folderHeader);
+      folderDiv.appendChild(childrenDiv);
+      parentEl.appendChild(folderDiv);
+      
+      renderTree(tree[key], childrenDiv, level + 1);
+    });
+    
+    // Render files
+    if (tree._files) {
+      tree._files.sort((a, b) => a.name.localeCompare(b.name)).forEach(file => {
+        const fileDiv = document.createElement('div');
+        fileDiv.className = 'tree-file';
+        fileDiv.innerHTML = `🎬 <span class="file-name">${file.name}</span>`;
+        fileDiv.addEventListener('click', () => playVideo(file.path));
+        parentEl.appendChild(fileDiv);
+      });
+    }
+  }
+
+  // Fetch video list using GET
+  async function fetchVideos() {
+    statusEl.textContent = 'fetching...';
+    treeEl.innerHTML = '';
+    
+    try {
+      const url = endpointEl.value || '/api/videos';
+      
+      const response = await fetch(url, {
+        method: 'GET'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      videoData = data;
+      
+      // Assume the response has a 'videos' or 'files' array, or is an array itself
+      let files = [];
+      if (Array.isArray(data)) {
+        files = data;
+      } else if (data.videos) {
+        files = data.videos;
+      } else if (data.files) {
+        files = data.files;
+      } else {
+        // Try to find any array property
+        for (let key in data) {
+          if (Array.isArray(data[key])) {
+            files = data[key];
+            break;
+          }
+        }
+      }
+      
+      if (files.length === 0) {
+        treeEl.innerHTML = '<div class="muted">No video files found</div>';
+        statusEl.textContent = 'no files found';
+        return;
+      }
+      
+      const tree = buildTree(files);
+      renderTree(tree, treeEl);
+      
+      statusEl.textContent = `loaded ${files.length} files`;
+    } catch (err) {
+      console.error(err);
+      treeEl.innerHTML = `<div style="color:#b00707">Error: ${err.message}</div>`;
+      statusEl.textContent = 'error';
+    }
+  }
+
+  // Play video by streaming directly from server
+  function playVideo(filepath) {
+    videoPlayerEl.innerHTML = '<div class="no-video">Loading video...</div>';
+    
+    try {
+      // Stream video directly from server URL
+      const videoUrl = `/${filepath}`;
+      
+      videoPlayerEl.innerHTML = `
+        <video controls autoplay>
+          <source src="${videoUrl}" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+        <div class="video-info">
+          <strong>Playing:</strong> ${filepath}
+        </div>
+      `;
+      
+    } catch (err) {
+      console.error(err);
+      videoPlayerEl.innerHTML = `
+        <div class="no-video" style="color:#b00707">
+          Error loading video: ${err.message}
+        </div>
+      `;
+    }
+  }
+
+  document.getElementById('fetchBtn').addEventListener('click', fetchVideos);
+</script>
+</body>
+</html>
