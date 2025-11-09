@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Selector</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      margin-top: 30px;
+    }
+    a {
+      margin-right: 15px; 
+    }
+    ol li {
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Error Pages</h1>
+  <select id="errorDropdown" onchange="navigateToError()">
+    <option value="">Select an Error Page</option>
+    <option value="error_pages/400.html">400 - Bad Request</option>
+    <option value="error_pages/403.html">403 - Forbidden</option>
+    <option value="error_pages/404.html">404 - Not Found</option>
+    <option value="error-pages/500.html">500 - Internal Server Error</option>
+  </select> 
+
+
+  <br><br>
+  <a href="video.html">Videos</a> 
+  <a href="https://www.github.com/avilodev">Github Repo</a>
+  <a href="tictactoe/index.html">TicTacToe Game</a>
+  <a href="capybara.html">Capybara website</a>
+  
+  <script>
+    function navigateToError() {
+      const file = document.getElementById("errorDropdown").value; 
+      if (file) window.location.href = file;
+    }
+    
+  </script>
+</body>
+</html>
