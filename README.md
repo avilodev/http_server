@@ -35,20 +35,3 @@ server/
 │
 └── obj/                     # Build artifacts
 
-
-/**
- * Brief one-line description of what the function does.
- * 
- * Longer detailed description if needed. Explain the purpose,
- * behavior, and any important details about the function.
- * Can span multiple lines.
- * 
- * @param param_name Description of the parameter
- * @param another_param Description of another parameter
- * 
- * @return Description of return value (or @retval for specific values)
- * 
- * @note Additional notes or special information
- * @warning Important warnings about usage
- * @see Related functions or references
- */
