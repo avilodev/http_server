@@ -121,18 +121,6 @@ ht* mime_init(const char* filepath) {
     free(line);
     fclose(file);
     
-    printf("MIME: Loaded %d lines, %zu mappings\n", line_count, table->length);
-    
-    // Debug: Test a few lookups
-    printf("MIME Test Lookups:\n");
-    const char* test_html = (const char*)ht_get(table, ".html");
-    const char* test_mp4 = (const char*)ht_get(table, ".mp4");
-    const char* test_txt = (const char*)ht_get(table, ".txt");
-    
-    printf("  .html -> %s\n", test_html ? test_html : "NOT FOUND");
-    printf("  .mp4 -> %s\n", test_mp4 ? test_mp4 : "NOT FOUND");
-    printf("  .txt -> %s\n", test_txt ? test_txt : "NOT FOUND");
-    
     return table;
 }
 
