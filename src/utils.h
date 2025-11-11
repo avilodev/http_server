@@ -9,5 +9,6 @@
 #include "types.h"
 
 char* get_time(int offset);
+const char* get_query_param(Client* client, const char* key);
 
 #endif 

@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pthread -O2 -g -Isrc
-LDFLAGS = -lssl -lcrypto
+LDFLAGS = -lssl -lcrypto -lsqlite3 -lsodium
 
 # Directories
 SRC_DIR = src
@@ -10,7 +10,7 @@ BIN_DIR = bin
 # Source files (just the names)
 SOURCES = main.c request.c response.c ssl_handler.c cache.c \
           logger.c config.c utils.c node.c thread_pool.c    \
-		  hash_table.c mime.c api.c
+		  hash_table.c mime.c api.c post.c
 
 # Full paths
 SRC_FILES = $(addprefix $(SRC_DIR)/, $(SOURCES))

@@ -58,6 +58,13 @@ Client* parse_http_request(char* raw_request, int client_fd, SSL* ssl) {
     client->GPC = 0;
     client->upgrade_tls = 0;
     
+    // Find body start (if POST request)
+    char* body_start = strstr(raw_request, "\r\n\r\n");
+    if (body_start) {
+        body_start += 4;  // Skip past \r\n\r\n
+        client->body = body_start;
+    }
+    
     // Parse request line
     char* saveptr;
     char* line = strtok_r(raw_request, "\r\n", &saveptr);
@@ -99,7 +106,7 @@ Client* parse_http_request(char* raw_request, int client_fd, SSL* ssl) {
     while ((line = strtok_r(NULL, "\r\n", &saveptr)) != NULL) {
         parse_header_line(client, line);
     }
-    
+
     // Validate required headers (Host is required in HTTP/1.1)
     if (strcmp(client->version, "HTTP/1.1") == 0 && !client->host) {
         log_message(LOG_WARN, "Missing Host header in HTTP/1.1 request");
@@ -174,6 +181,9 @@ static void parse_header_line(Client* client, char* line) {
     else if (strncasecmp(line, "Priority: ", 10) == 0) {
         client->priority = line + 10;
     }
+    else if (strncasecmp(line, "Content-Type: ", 14) == 0) {
+        client->post_type = line + 14;
+    }
 }
 
 /**
@@ -238,6 +248,7 @@ int validate_http_method(const char* method) {
     
     // Supported methods
     if (strcmp(method, "GET") == 0) return 1;
+    if (strcmp(method, "POST") == 0) return 1;
     if (strcmp(method, "HEAD") == 0) return 1;
     if (strcmp(method, "OPTIONS") == 0) return 1;
     
@@ -337,7 +348,7 @@ void free_client(Client* client) {
  */
 void print_client_info(const Client* client) {
     if (!client) return;
-    
+
     log_message(LOG_DEBUG, "=== Client Request ===");
     log_message(LOG_DEBUG, "%s %s %s", client->method, client->path, client->version);
     log_message(LOG_DEBUG, "Host: %s", client->host ? client->host : "(none)");
