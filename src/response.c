@@ -131,6 +131,10 @@ int send_file_response(Client* client, struct Node* cache_node) {
                               start, end, file_size);
     }
     
+    //Server 
+    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+                        "Server: %s\r\n", SERVER_VERSION);
+
     // Connection header
     if (client->connection_status) {
         header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,

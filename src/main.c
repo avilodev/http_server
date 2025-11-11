@@ -8,6 +8,7 @@
 #include "config.h"
 #include "mime.h"
 #include "api.h"
+#include "post.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +25,10 @@
 
 #include <openssl/err.h>
 
+#include <sqlite3.h>
+#include <sodium.h>
+
+
 // Global variables for signal handling
 static volatile sig_atomic_t g_shutdown = 0;
 static volatile sig_atomic_t g_refresh_cache = 0;
@@ -34,6 +39,8 @@ static struct ThreadPool* g_thread_pool = NULL;
 //Initialize Mime Hash Table
 ht* mime_table;
 
+//sql database
+sqlite3* g_database = NULL;
 
 /**
  * Signal handler for managing server and cache operations.
@@ -126,7 +133,7 @@ void* handle_client_thread(void* arg) {
     
     request_buffer[recv_len] = '\0';
     log_message(LOG_DEBUG, "Received %ld bytes from client", recv_len);
-    
+
     // Parse HTTP request
     Client* client = parse_http_request(request_buffer, args->client_fd, args->ssl);
     if (!client) {
@@ -147,7 +154,7 @@ void* handle_client_thread(void* arg) {
     
     // Handle TLS upgrade redirect (HTTP only)
     if (!args->ssl && client->upgrade_tls) {
-        char redirect_url[512];
+        char redirect_url[512]; 
         snprintf(redirect_url, sizeof(redirect_url), "https://%s%s", 
                  client->host ? client->host : "localhost", client->path);
         
@@ -169,6 +176,13 @@ void* handle_client_thread(void* arg) {
         free_client(client);
         goto cleanup;
     }
+
+    if(strncmp(client->method, "POST", 4) == 0)
+    {
+        handle_post(client);
+        free_client(client);
+        goto cleanup;
+    }
     
     // Validate path for security
     if (!validate_path(client->path)) {
@@ -179,7 +193,7 @@ void* handle_client_thread(void* arg) {
     }
     
     // Resolve full filesystem path
-    extern struct ServerConfig g_config;  // From config.c
+    extern struct ServerConfig g_config;
     client->full_path = resolve_request_path(client->path, g_config.webroot);
     if (!client->full_path) {
         log_message(LOG_ERROR, "Failed to resolve path");
@@ -354,6 +368,26 @@ int main(int argc, char** argv) {
     
     // Setup signal handlers
     setup_signals();
+
+    // Initialize libsodium (for password hashing)
+    printf("Initializing libsodium...\n");
+    if (sodium_init() < 0) {
+        fprintf(stderr, "Failed to initialize libsodium\n");
+        log_message(LOG_ERROR, "Failed to initialize libsodium");
+        log_close();
+        return 1;
+    }
+    log_message(LOG_INFO, "libsodium initialized successfully");
+    
+    // Initialize database
+    printf("Initializing database...\n");
+    if (init_database(&g_database) != SQLITE_OK) {
+        fprintf(stderr, "Failed to initialize database\n");
+        log_message(LOG_ERROR, "Failed to initialize database");
+        log_close();
+        return 1;
+    }
+    log_message(LOG_INFO, "Database initialized successfully");
     
     // Initialize cache tree
     struct Node* cache_tree = cache_tree_init(g_config.webroot);
@@ -431,6 +465,8 @@ int main(int argc, char** argv) {
 
     // Main server loop
     while (!g_shutdown) {
+        if (g_shutdown) 
+            break;
         // Handle cache refresh signal
         if (g_refresh_cache) {
             log_message(LOG_INFO, "Refreshing cache tree");
@@ -600,6 +636,13 @@ int main(int argc, char** argv) {
     //Cleanup Mime Table
     printf("Destorying Mime Table\n");
     ht_destroy(mime_table);
+
+    // Close database connection
+    if (g_database) {
+        printf("Closing database connection...\n");
+        sqlite3_close(g_database);
+        log_message(LOG_INFO, "Database closed");
+    }
 
     // Cleanup SSL
     printf("Cleaning up SSL...\n");

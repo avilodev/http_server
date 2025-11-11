@@ -65,8 +65,8 @@ void configure_ssl_context(SSL_CTX *ctx) {
     char cert_path[256] = {0};
     char key_path[256] = {0};
 
-    sprintf(cert_path, "%s/keys/cert.pem", SERVER_PATH);
-    sprintf(key_path, "%s/keys/key.pem", SERVER_PATH);
+    sprintf(cert_path, "/etc/letsencrypt/live/avilo.dev/fullchain.pem");
+    sprintf(key_path, "/etc/letsencrypt/live/avilo.dev/privkey.pem");
 
     if (SSL_CTX_use_certificate_file(ctx, cert_path, SSL_FILETYPE_PEM) <= 0) 
     {

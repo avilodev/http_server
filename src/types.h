@@ -9,7 +9,8 @@
 #define HTTP_PORT 80
 #define HTTPS_PORT 443
 #define BACKLOG 20
-#define SERVER_PATH "/home/ubuntu/server"
+#define SERVER_PATH "/home/ubuntu/http_server"
+#define SERVER_VERSION "Snap/0.4"
 #define MAX_REQUEST_SIZE 8192
 #define MAX_RESPONSE_SIZE 262144
 #define SMALL_ALLOCATE 256
@@ -59,6 +60,9 @@ typedef struct Client {
     int DNT;                 // Do Not Track
     int GPC;                 // Global Privacy Control
     int upgrade_tls;         // Upgrade-Insecure-Requests
+
+    char* post_type;         // Content Type of POST headers only
+    char* body;              // Body of Client Request 
     
     // SSL
     int is_ssl;
