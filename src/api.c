@@ -4,6 +4,7 @@ ApiRoute api_routes[] = {
     { "/api/status", handle_api_status },
     { "/api/files",  handle_api_files },
     { "/api/config", handle_api_config },
+    { "/api/time", handle_api_time },
     { NULL, NULL }
 };
 
@@ -33,4 +34,16 @@ void handle_api_files(Client* client)
 void handle_api_config(Client* client)
 {
     send_api_response(client, 200, "application/json", "Config");
+}
+
+void handle_api_time(Client* client)
+{
+    char current_time[SMALL_ALLOCATE];
+    char* date = get_time(0);
+
+    sprintf(current_time, "\"status\":\"online\",\"date\":\"%s\"", date);
+
+    send_api_response(client, 200, "application/json", current_time);
+
+    free(date);
 }

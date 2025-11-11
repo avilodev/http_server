@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "response.h"
+#include "utils.h"
 
 typedef void (*api_handler_t)(Client*);
 
@@ -17,6 +18,8 @@ void handle_api_request(Client* client);
 void handle_api_status(Client* client);
 void handle_api_files(Client* client);
 void handle_api_config(Client* client);
+void handle_api_time(Client* client);
+
 
 extern ApiRoute api_routes[];
 
