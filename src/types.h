@@ -9,7 +9,10 @@
 #define HTTP_PORT 80
 #define HTTPS_PORT 443
 #define BACKLOG 20
-#define SERVER_PATH "/home/ubuntu/http_server"
+/* SERVER_PATH is injected at compile time via -DSERVER_PATH=... in the Makefile */
+#ifndef SERVER_PATH
+#error "SERVER_PATH must be defined by the build system (see Makefile)"
+#endif
 #define SERVER_VERSION "Snap/0.4"
 #define MAX_REQUEST_SIZE 8192
 #define MAX_RESPONSE_SIZE 262144

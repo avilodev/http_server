@@ -1,4 +1,5 @@
 #include "ssl_handler.h"
+#include "config.h"
 
 /**
  * Initializes the OpenSSL library
@@ -62,11 +63,8 @@ SSL_CTX* create_ssl_context() {
  * @see create_ssl_context()
  */
 void configure_ssl_context(SSL_CTX *ctx) {
-    char cert_path[256] = {0};
-    char key_path[256] = {0};
-
-    sprintf(cert_path, "/etc/letsencrypt/live/avilo.dev/fullchain.pem");
-    sprintf(key_path, "/etc/letsencrypt/live/avilo.dev/privkey.pem");
+    const char* cert_path = g_config.cert_path;
+    const char* key_path  = g_config.key_path;
 
     if (SSL_CTX_use_certificate_file(ctx, cert_path, SSL_FILETYPE_PEM) <= 0) 
     {
@@ -129,7 +127,10 @@ SSL* accept_ssl_connection(SSL_CTX* ctx, int client_fd) {
     SSL_set_fd(ssl, client_fd);
     
     if (SSL_accept(ssl) <= 0) {
-        ERR_print_errors_fp(stderr);
+        /* Discard client-side alerts (e.g. unknown CA, certificate unknown).
+         * These are normal when using self-signed certs and do not indicate a
+         * server-side fault; the NULL return is sufficient for the caller. */
+        ERR_clear_error();
         SSL_free(ssl);
         return NULL;
     }

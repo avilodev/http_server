@@ -12,7 +12,11 @@ ApiRoute api_routes[] = {
 void handle_api_request(Client* client) 
 {
     for (int i = 0; api_routes[i].path != NULL; i++) {
-        if (strcmp(client->path, api_routes[i].path) == 0) {
+        size_t route_len = strlen(api_routes[i].path);
+        /* Match the route prefix and require the next character to be '?' or '\0'
+         * so that /api/files?path=... correctly dispatches to handle_api_files. */
+        if (strncmp(client->path, api_routes[i].path, route_len) == 0 &&
+            (client->path[route_len] == '\0' || client->path[route_len] == '?')) {
             api_routes[i].handler(client);
             return;
         }
@@ -23,7 +27,7 @@ void handle_api_request(Client* client)
 
 void handle_api_status(Client* client)
 {
-    send_api_response(client, 200, "application/json", "\"status\":\"online\",\"uptime\":102,\"version\":\"0.4\"");
+    send_api_response(client, 200, "application/json", "{\"status\":\"online\",\"uptime\":102,\"version\":\"0.4\"}");
 }
 
 void handle_api_info(Client* client) 
@@ -51,24 +55,26 @@ void handle_api_info(Client* client)
 }
 
 void handle_api_files(Client* client) {
-    const char* path = get_query_param(client, "path");
-    if (!path) path = "/";
-    
+    char* path = get_query_param(client, "path");
+    /* get_query_param returns a heap-allocated string; free after use. */
+    const char* effective_path = path ? path : "/";
+
     char full_path[512];
     extern ServerConfig g_config;
-    snprintf(full_path, sizeof(full_path), "%s/webpages/%s", g_config.webroot, path);
-    
+    snprintf(full_path, sizeof(full_path), "%s/webpages/%s", g_config.webroot, effective_path);
+
     DIR* dir = opendir(full_path);
     if (!dir) {
+        free(path);
         send_api_error(client, 404, "NOT_FOUND", "Directory not found");
         return;
     }
-    
+
     // Build JSON array of files
     char response[4096];
     int offset = snprintf(response, sizeof(response),
         "{\n  \"success\": true,\n  \"data\": {\n    \"path\": \"%s\",\n    \"files\": [\n",
-        path
+        effective_path
     );
     
     struct dirent* entry;
@@ -111,6 +117,7 @@ void handle_api_files(Client* client) {
     );
     
     closedir(dir);
+    free(path);
     send_api_response(client, 200, "application/json", response);
 }
 

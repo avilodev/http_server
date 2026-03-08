@@ -23,7 +23,7 @@ struct Node* add_node(struct Node*, char*);
 int hashFile(char* filename);
 int hashPath(const char* filename);
 char* update_last_modified(char*);
-void insert_node(struct Node*, struct Node*);
+int insert_node(struct Node*, struct Node*);
 struct Node* lookupNode(struct Node*, unsigned int);
 void printTree(struct Node*, int);
 void free_tree(struct Node*);

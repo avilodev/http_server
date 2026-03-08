@@ -3,62 +3,444 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Video File Tree Viewer</title>
+<title>Video Player</title>
 <style>
-  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; padding: 20px; background:#f7f8fb; margin:0; }
-  .container { max-width:1400px; margin: 0 auto; display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
-  .card { background:white; padding:20px; border-radius:8px; box-shadow:0 6px 18px rgba(20,20,40,0.06); }
-  h1, h2 { margin-top:0 }
-  label { display:block; margin:10px 0 6px; font-weight:600; font-size:14px; }
-  input[type=text] { width:100%; box-sizing:border-box; padding:10px; border-radius:6px; border:1px solid #e0e6ef; font-family:monospace; font-size:13px; }
-  button { padding:10px 14px; border-radius:6px; border:0; background:#0066cc; color:#fff; cursor:pointer; font-size:14px; margin-top:10px; }
-  button:hover { background:#0052a3; }
-  .muted { color:#666; font-size:13px; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
   
-  /* Tree styles */
-  .tree { margin-top:15px; }
-  .tree-node { margin-left:20px; }
-  .tree-folder { cursor:pointer; user-select:none; padding:4px 0; }
-  .tree-folder:hover { background:#f0f4f8; }
-  .tree-file { cursor:pointer; padding:4px 8px; margin:2px 0; border-radius:4px; color:#0066cc; }
-  .tree-file:hover { background:#e6f2ff; }
-  .folder-icon { display:inline-block; width:16px; }
-  .folder-name { font-weight:600; color:#333; }
-  .file-name { color:#0066cc; }
-  .collapsed { display:none; }
+  body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+  }
   
-  /* Video player */
-  .video-container { position:sticky; top:20px; }
-  video { width:100%; max-height:500px; border-radius:8px; background:#000; }
-  .video-info { margin-top:10px; padding:10px; background:#f3f6fb; border-radius:6px; font-size:13px; }
-  .no-video { text-align:center; padding:60px 20px; color:#999; }
+  .container { 
+    max-width: 1400px; 
+    margin: 0 auto;
+  }
   
-  @media (max-width: 1000px) {
-    .container { grid-template-columns: 1fr; }
-    .video-container { position:relative; top:0; }
+  /* Header Section */
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+    color: white;
+  }
+  
+  .header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+  
+  .header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+  }
+  
+  /* Video Player Section */
+  .video-section {
+    background: white;
+    border-radius: 16px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  
+  .video-player-container {
+    position: relative;
+    width: 100%;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  
+  .video-placeholder {
+    aspect-ratio: 16/9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: white;
+    font-size: 1.2rem;
+  }
+  
+  .video-placeholder svg {
+    width: 80px;
+    height: 80px;
+    opacity: 0.5;
+    margin-bottom: 15px;
+  }
+  
+  .video-placeholder-content {
+    text-align: center;
+  }
+  
+  video {
+    width: 100%;
+    display: block;
+    background: #000;
+  }
+  
+  .video-info {
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+  }
+  
+  .video-info h3 {
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 8px;
+  }
+  
+  .video-info p {
+    color: #666;
+    font-size: 0.95rem;
+  }
+  
+  /* Library Section */
+  .library-section {
+    background: white;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  
+  .library-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e9ecef;
+  }
+  
+  .library-header h2 {
+    font-size: 1.8rem;
+    color: #333;
+  }
+  
+  .fetch-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  
+  .endpoint-input {
+    padding: 10px 15px;
+    border: 2px solid #e0e6ef;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    width: 200px;
+  }
+  
+  .btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  }
+  
+  .btn-secondary {
+    background: #6c757d;
+    color: white;
+  }
+  
+  .btn-secondary:hover {
+    background: #5a6268;
+  }
+  
+  .status {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: #e9ecef;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #666;
+  }
+  
+  .status.loading {
+    background: #fff3cd;
+    color: #856404;
+  }
+  
+  .status.success {
+    background: #d4edda;
+    color: #155724;
+  }
+  
+  .status.error {
+    background: #f8d7da;
+    color: #721c24;
+  }
+  
+  /* Breadcrumb Navigation */
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .breadcrumb-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: #667eea;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+  
+  .breadcrumb-item:hover {
+    background: #e9ecef;
+  }
+  
+  .breadcrumb-item.current {
+    color: #333;
+    font-weight: 600;
+    cursor: default;
+  }
+  
+  .breadcrumb-item.current:hover {
+    background: transparent;
+  }
+  
+  .breadcrumb-separator {
+    color: #adb5bd;
+  }
+  
+  /* File Browser */
+  .file-browser {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+  }
+  
+  .folder-card, .video-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+  }
+  
+  .folder-card:hover, .video-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  }
+  
+  .folder-card:hover {
+    border-color: #ffc107;
+  }
+  
+  .video-card:hover {
+    border-color: #667eea;
+  }
+  
+  .video-card.playing {
+    border-color: #764ba2;
+    background: #f0e7ff;
+  }
+  
+  .video-thumbnail, .folder-thumbnail {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+    background: #000;
+  }
+  
+  .folder-thumbnail {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+  }
+  
+  .video-thumbnail {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .video-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .folder-thumbnail svg {
+    width: 60px;
+    height: 60px;
+    color: white;
+  }
+  
+  .video-thumbnail svg {
+    width: 40px;
+    height: 40px;
+    color: white;
+    opacity: 0.8;
+    position: absolute;
+  }
+  
+  .play-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  
+  .video-card:hover .play-overlay {
+    opacity: 1;
+  }
+  
+  .play-icon {
+    width: 50px;
+    height: 50px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .play-icon svg {
+    width: 24px;
+    height: 24px;
+    color: #667eea;
+    margin-left: 3px;
+  }
+  
+  .card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .card-subtitle {
+    font-size: 0.8rem;
+    color: #999;
+  }
+  
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+  }
+  
+  .empty-state svg {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 20px;
+    opacity: 0.3;
+  }
+  
+  .empty-state h3 {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+    color: #666;
+  }
+  
+  @media (max-width: 768px) {
+    .header h1 { font-size: 2rem; }
+    .library-header { flex-direction: column; align-items: stretch; gap: 15px; }
+    .fetch-controls { flex-direction: column; width: 100%; }
+    .endpoint-input { width: 100%; }
+    .file-browser { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
   <div class="container">
-    <div class="card">
-      <h1>Video File Browser</h1>
-      
-      <label for="endpoint">API Endpoint (GET request)</label>
-      <input id="endpoint" type="text" value="/api/videos" />
-
-      <button id="fetchBtn">Fetch Videos</button>
-      
-      <div class="muted" style="margin-top:8px">Status: <span id="status">—</span></div>
-
-      <h2 style="margin-top:25px">File Tree</h2>
-      <div id="tree" class="tree"></div>
+    <!-- Header -->
+    <div class="header">
+      <h1>🎬 Video Library</h1>
+      <p>Browse and play your video collection</p>
     </div>
 
-    <div class="card video-container">
-      <h2>Video Player</h2>
-      <div id="videoPlayer">
-        <div class="no-video">Click on a video file to play</div>
+    <!-- Video Player Section -->
+    <div class="video-section">
+      <div class="video-player-container" id="videoPlayerContainer">
+        <div class="video-placeholder">
+          <div class="video-placeholder-content">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <p>Select a video to play</p>
+          </div>
+        </div>
+      </div>
+      <div class="video-info" id="videoInfo" style="display:none;">
+        <h3 id="videoTitle">Video Title</h3>
+        <p id="videoPath">Path: —</p>
+      </div>
+    </div>
+
+    <!-- Library Section -->
+    <div class="library-section">
+      <div class="library-header">
+        <h2>Video Library</h2>
+        <div class="fetch-controls">
+          <input id="endpoint" class="endpoint-input" type="text" value="/api/videos" placeholder="API Endpoint" />
+          <button id="fetchBtn" class="btn btn-primary">Fetch Videos</button>
+          <span id="status" class="status">Ready</span>
+        </div>
+      </div>
+
+      <!-- Breadcrumb Navigation -->
+      <div id="breadcrumb" class="breadcrumb" style="display:none;">
+        <div class="breadcrumb-item" data-path="">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          </svg>
+          Home
+        </div>
+      </div>
+
+      <div id="fileBrowser" class="file-browser">
+        <div class="empty-state">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+            <polyline points="17 2 12 7 7 2"></polyline>
+          </svg>
+          <h3>No videos loaded</h3>
+          <p>Click "Fetch Videos" to load your collection</p>
+        </div>
       </div>
     </div>
   </div>
@@ -66,110 +448,250 @@
 <script>
   const endpointEl = document.getElementById('endpoint');
   const statusEl = document.getElementById('status');
-  const treeEl = document.getElementById('tree');
-  const videoPlayerEl = document.getElementById('videoPlayer');
+  const fileBrowserEl = document.getElementById('fileBrowser');
+  const breadcrumbEl = document.getElementById('breadcrumb');
+  const videoPlayerContainer = document.getElementById('videoPlayerContainer');
+  const videoInfoEl = document.getElementById('videoInfo');
+  const videoTitleEl = document.getElementById('videoTitle');
+  const videoPathEl = document.getElementById('videoPath');
 
-  let videoData = null;
+  let currentPlayingCard = null;
+  let allVideos = [];
+  let currentPath = '';
 
-  // Parse file paths and build tree structure
-  function buildTree(files) {
-    const tree = {};
+  // Update status
+  function setStatus(text, type = '') {
+    statusEl.textContent = text;
+    statusEl.className = 'status ' + type;
+  }
+
+  // Build folder structure from flat file list
+  function buildFolderStructure(files) {
+    const structure = { folders: {}, videos: [] };
     
-    files.forEach(item => {
-      // Handle both string paths and objects with path property
-      let filepath;
-      if (typeof item === 'string') {
-        filepath = item;
-      } else if (item && item.path) {
-        filepath = item.path;
-      } else if (item && item.filepath) {
-        filepath = item.filepath;
-      } else if (item && item.name) {
-        filepath = item.name;
+    files.forEach(filepath => {
+      // Remove "videos/" prefix if present
+      const cleanPath = filepath.replace(/^videos\//, '');
+      const parts = cleanPath.split('/');
+      
+      if (parts.length === 1) {
+        // Video in root
+        structure.videos.push(filepath);
       } else {
-        console.warn('Unknown file item format:', item);
-        return;
+        // Video in subfolder
+        const folderName = parts[0];
+        if (!structure.folders[folderName]) {
+          structure.folders[folderName] = [];
+        }
+        structure.folders[folderName].push(filepath);
+      }
+    });
+    
+    return structure;
+  }
+
+  // Get files for current path
+  function getFilesForPath(path) {
+    if (!path) {
+      // Root level - show top-level folders and videos
+      return buildFolderStructure(allVideos);
+    }
+    
+    // Filter videos that start with this path
+    const prefix = path + '/';
+    const filtered = allVideos.filter(f => {
+      const cleanPath = f.replace(/^videos\//, '');
+      return cleanPath.startsWith(prefix);
+    });
+    
+    // Build structure for this subfolder
+    const structure = { folders: {}, videos: [] };
+    
+    filtered.forEach(filepath => {
+      const cleanPath = filepath.replace(/^videos\//, '');
+      const relativePath = cleanPath.substring(prefix.length);
+      const parts = relativePath.split('/');
+      
+      if (parts.length === 1) {
+        // Direct video in this folder
+        structure.videos.push(filepath);
+      } else {
+        // Subfolder
+        const folderName = parts[0];
+        if (!structure.folders[folderName]) {
+          structure.folders[folderName] = [];
+        }
+        structure.folders[folderName].push(filepath);
+      }
+    });
+    
+    return structure;
+  }
+
+  // Update breadcrumb
+  function updateBreadcrumb(path) {
+    if (!path) {
+      breadcrumbEl.style.display = 'none';
+      return;
+    }
+    
+    breadcrumbEl.style.display = 'flex';
+    breadcrumbEl.innerHTML = '';
+    
+    // Home button
+    const homeItem = document.createElement('div');
+    homeItem.className = 'breadcrumb-item';
+    homeItem.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+      </svg>
+      Home
+    `;
+    homeItem.addEventListener('click', () => navigateToPath(''));
+    breadcrumbEl.appendChild(homeItem);
+    
+    // Path segments
+    const segments = path.split('/');
+    let accumulatedPath = '';
+    
+    segments.forEach((segment, index) => {
+      accumulatedPath += (accumulatedPath ? '/' : '') + segment;
+      const isLast = index === segments.length - 1;
+      
+      const separator = document.createElement('span');
+      separator.className = 'breadcrumb-separator';
+      separator.textContent = '/';
+      breadcrumbEl.appendChild(separator);
+      
+      const item = document.createElement('div');
+      item.className = 'breadcrumb-item' + (isLast ? ' current' : '');
+      item.textContent = segment;
+      
+      if (!isLast) {
+        const itemPath = accumulatedPath;
+        item.addEventListener('click', () => navigateToPath(itemPath));
       }
       
-      const parts = filepath.split('/').filter(p => p);
-      let current = tree;
-      
-      parts.forEach((part, idx) => {
-        if (idx === parts.length - 1) {
-          // It's a file
-          if (!current._files) current._files = [];
-          current._files.push({ name: part, path: filepath });
-        } else {
-          // It's a folder
-          if (!current[part]) current[part] = {};
-          current = current[part];
-        }
-      });
+      breadcrumbEl.appendChild(item);
     });
-    
-    return tree;
   }
 
-  // Render tree recursively
-  function renderTree(tree, parentEl, level = 0) {
-    Object.keys(tree).sort().forEach(key => {
-      if (key === '_files') return; // Handle files separately
-      
-      const folderDiv = document.createElement('div');
-      folderDiv.className = 'tree-node';
-      
-      const folderHeader = document.createElement('div');
-      folderHeader.className = 'tree-folder';
-      folderHeader.innerHTML = `<span class="folder-icon">📁</span> <span class="folder-name">${key}</span>`;
-      
-      const childrenDiv = document.createElement('div');
-      childrenDiv.className = 'tree-children';
-      
-      folderHeader.addEventListener('click', () => {
-        childrenDiv.classList.toggle('collapsed');
-        folderHeader.querySelector('.folder-icon').textContent = 
-          childrenDiv.classList.contains('collapsed') ? '📁' : '📂';
-      });
-      
-      folderDiv.appendChild(folderHeader);
-      folderDiv.appendChild(childrenDiv);
-      parentEl.appendChild(folderDiv);
-      
-      renderTree(tree[key], childrenDiv, level + 1);
-    });
+  // Navigate to a folder path
+  function navigateToPath(path) {
+    currentPath = path;
+    updateBreadcrumb(path);
+    renderCurrentFolder();
+  }
+
+  // Render current folder contents
+  function renderCurrentFolder() {
+    const structure = getFilesForPath(currentPath);
+    fileBrowserEl.innerHTML = '';
     
-    // Render files
-    if (tree._files) {
-      tree._files.sort((a, b) => a.name.localeCompare(b.name)).forEach(file => {
-        const fileDiv = document.createElement('div');
-        fileDiv.className = 'tree-file';
-        fileDiv.innerHTML = `🎬 <span class="file-name">${file.name}</span>`;
-        fileDiv.addEventListener('click', () => playVideo(file.path));
-        parentEl.appendChild(fileDiv);
-      });
+    const folderNames = Object.keys(structure.folders).sort();
+    const videos = structure.videos.sort();
+    
+    if (folderNames.length === 0 && videos.length === 0) {
+      fileBrowserEl.innerHTML = `
+        <div class="empty-state">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <h3>Empty folder</h3>
+          <p>No videos or subfolders here</p>
+        </div>
+      `;
+      return;
     }
+    
+    // Render folders
+    folderNames.forEach(folderName => {
+      const card = createFolderCard(folderName, structure.folders[folderName].length);
+      fileBrowserEl.appendChild(card);
+    });
+    
+    // Render videos
+    videos.forEach(filepath => {
+      const card = createVideoCard(filepath);
+      fileBrowserEl.appendChild(card);
+    });
   }
 
-  // Fetch video list using GET
+  // Create folder card
+  function createFolderCard(folderName, itemCount) {
+    const card = document.createElement('div');
+    card.className = 'folder-card';
+    
+    card.innerHTML = `
+      <div class="folder-thumbnail">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </div>
+      <div class="card-title">${folderName}</div>
+      <div class="card-subtitle">${itemCount} item${itemCount !== 1 ? 's' : ''}</div>
+    `;
+    
+    card.addEventListener('click', () => {
+      const newPath = currentPath ? currentPath + '/' + folderName : folderName;
+      navigateToPath(newPath);
+    });
+    
+    return card;
+  }
+
+  // Create video card
+  function createVideoCard(filepath) {
+    const card = document.createElement('div');
+    card.className = 'video-card';
+    
+    const filename = filepath.split('/').pop();
+    const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+    
+    card.innerHTML = `
+      <div class="video-thumbnail">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <div class="play-overlay">
+          <div class="play-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="card-title" title="${nameWithoutExt}">${nameWithoutExt}</div>
+      <div class="card-subtitle">${getFileExtension(filename).toUpperCase()}</div>
+    `;
+    
+    card.addEventListener('click', () => playVideo(filepath, card));
+    
+    return card;
+  }
+
+  // Get file extension
+  function getFileExtension(filename) {
+    return filename.split('.').pop() || '';
+  }
+
+  // Fetch video list
   async function fetchVideos() {
-    statusEl.textContent = 'fetching...';
-    treeEl.innerHTML = '';
+    setStatus('Fetching...', 'loading');
+    fileBrowserEl.innerHTML = '';
     
     try {
       const url = endpointEl.value || '/api/videos';
-      
-      const response = await fetch(url, {
-        method: 'GET'
-      });
+      const response = await fetch(url, { method: 'GET' });
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
       
       const data = await response.json();
-      videoData = data;
       
-      // Assume the response has a 'videos' or 'files' array, or is an array itself
       let files = [];
       if (Array.isArray(data)) {
         files = data;
@@ -177,62 +699,86 @@
         files = data.videos;
       } else if (data.files) {
         files = data.files;
-      } else {
-        // Try to find any array property
-        for (let key in data) {
-          if (Array.isArray(data[key])) {
-            files = data[key];
-            break;
-          }
-        }
       }
       
       if (files.length === 0) {
-        treeEl.innerHTML = '<div class="muted">No video files found</div>';
-        statusEl.textContent = 'no files found';
+        fileBrowserEl.innerHTML = `
+          <div class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <h3>No videos found</h3>
+            <p>Check your video directory</p>
+          </div>
+        `;
+        setStatus('No videos found', 'error');
         return;
       }
       
-      const tree = buildTree(files);
-      renderTree(tree, treeEl);
+      allVideos = files;
+      currentPath = '';
+      navigateToPath('');
       
-      statusEl.textContent = `loaded ${files.length} files`;
+      setStatus(`${files.length} videos loaded`, 'success');
     } catch (err) {
       console.error(err);
-      treeEl.innerHTML = `<div style="color:#b00707">Error: ${err.message}</div>`;
-      statusEl.textContent = 'error';
+      fileBrowserEl.innerHTML = `
+        <div class="empty-state">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+          <h3>Error loading videos</h3>
+          <p>${err.message}</p>
+        </div>
+      `;
+      setStatus('Error', 'error');
     }
   }
 
-  // Play video by streaming directly from server
-  function playVideo(filepath) {
-    videoPlayerEl.innerHTML = '<div class="no-video">Loading video...</div>';
-    
+  // Play video
+  function playVideo(filepath, cardElement) {
     try {
-      // Stream video directly from server URL
       const videoUrl = `/${filepath}`;
       
-      videoPlayerEl.innerHTML = `
+      videoPlayerContainer.innerHTML = `
         <video controls autoplay>
           <source src="${videoUrl}" type="video/mp4">
           Your browser does not support the video tag.
         </video>
-        <div class="video-info">
-          <strong>Playing:</strong> ${filepath}
-        </div>
       `;
+      
+      const filename = filepath.split('/').pop();
+      const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+      
+      videoTitleEl.textContent = nameWithoutExt;
+      videoPathEl.textContent = `Path: ${filepath}`;
+      videoInfoEl.style.display = 'block';
+      
+      // Update card highlighting
+      if (currentPlayingCard) {
+        currentPlayingCard.classList.remove('playing');
+      }
+      cardElement.classList.add('playing');
+      currentPlayingCard = cardElement;
+      
+      // Scroll to video player
+      videoPlayerContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
       
     } catch (err) {
       console.error(err);
-      videoPlayerEl.innerHTML = `
-        <div class="no-video" style="color:#b00707">
-          Error loading video: ${err.message}
-        </div>
-      `;
+      alert('Error loading video: ' + err.message);
     }
   }
 
+  // Event listeners
   document.getElementById('fetchBtn').addEventListener('click', fetchVideos);
+  
+  // Auto-fetch on load
+  window.addEventListener('load', fetchVideos);
 </script>
 </body>
 </html>
