@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE 700
 #include "types.h"
 #include "request.h"
 #include "response.h"
@@ -22,6 +23,7 @@
 #include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 #include <openssl/err.h>
 
@@ -112,166 +114,198 @@ void setup_signals(void) {
  *
  * @see threadpool_add_work(), parse_http_request(), send_file_response()
  */
+/*
+ * Compares two HTTP-date strings (RFC 7231 IMF-fixdate format) by parsing
+ * them with strptime rather than comparing lexicographically. Lexicographic
+ * comparison fails for month abbreviations (e.g. "Apr" < "Jan" in ASCII).
+ *
+ * Returns negative if a < b, 0 if equal, positive if a > b.
+ * Returns 0 if either string cannot be parsed.
+ */
+static int compare_http_dates(const char* a, const char* b) {
+    struct tm ta, tb;
+    memset(&ta, 0, sizeof(ta));
+    memset(&tb, 0, sizeof(tb));
+
+    if (!strptime(a, "%a, %d %b %Y %H:%M:%S %Z", &ta)) return 0;
+    if (!strptime(b, "%a, %d %b %Y %H:%M:%S %Z", &tb)) return 0;
+
+    if (ta.tm_year != tb.tm_year) return ta.tm_year - tb.tm_year;
+    if (ta.tm_mon  != tb.tm_mon)  return ta.tm_mon  - tb.tm_mon;
+    if (ta.tm_mday != tb.tm_mday) return ta.tm_mday - tb.tm_mday;
+    if (ta.tm_hour != tb.tm_hour) return ta.tm_hour - tb.tm_hour;
+    if (ta.tm_min  != tb.tm_min)  return ta.tm_min  - tb.tm_min;
+    return ta.tm_sec - tb.tm_sec;
+}
+
 void* handle_client_thread(void* arg) {
     ThreadArgs* args = (ThreadArgs*)arg;
-    
-    char request_buffer[8192];
-    memset(request_buffer, 0, sizeof(request_buffer));
-    
-    // Read request from client
-    ssize_t recv_len;
-    if (args->ssl) {
-        recv_len = SSL_read(args->ssl, request_buffer, sizeof(request_buffer) - 1);
-    } else {
-        recv_len = recv(args->client_fd, request_buffer, sizeof(request_buffer) - 1, 0);
-    }
-    
-    if (recv_len <= 0) {
-        log_message(LOG_WARN, "Failed to read request or client disconnected");
-        goto cleanup;
-    }
-    
-    request_buffer[recv_len] = '\0';
-    log_message(LOG_DEBUG, "Received %ld bytes from client", recv_len);
-
-    // Parse HTTP request
-    Client* client = parse_http_request(request_buffer, args->client_fd, args->ssl);
-    if (!client) {
-        log_message(LOG_ERROR, "Failed to parse request");
-        goto cleanup;
-    }
-    
-    // Set client connection info
-    client->client_ip = inet_ntoa(args->client_addr.sin_addr);
-    client->client_port = ntohs(args->client_addr.sin_port);
-    
-    log_message(LOG_INFO, "Request from %s:%d - %s %s %s", 
-                client->client_ip, client->client_port,
-                client->method, client->path, client->version);
-    
-    // Print detailed client info (debug)
-    print_client_info(client);
-    
-    // Handle TLS upgrade redirect (HTTP only)
-    if (!args->ssl && client->upgrade_tls) {
-        char redirect_url[512]; 
-        snprintf(redirect_url, sizeof(redirect_url), "https://%s%s", 
-                 client->host ? client->host : "localhost", client->path);
-        
-        log_message(LOG_INFO, "Redirecting to HTTPS: %s", redirect_url);
-        send_redirect_response(redirect_url, client);
-        free_client(client);
-        goto cleanup;
-    }
-    
-    // Validate HTTP method
-    if (!validate_http_method(client->method)) {
-        if (strcmp(client->method, "OPTIONS") == 0) {
-            log_message(LOG_INFO, "Handling OPTIONS request");
-            send_options_response(client);
-        } else {
-            log_message(LOG_WARN, "Unsupported method: %s", client->method);
-            send_error_response(501, client);
-        }
-        free_client(client);
-        goto cleanup;
-    }
-
-    if(strncmp(client->method, "POST", 4) == 0)
-    {
-        handle_post(client);
-        free_client(client);
-        goto cleanup;
-    }
-    
-    // Validate path for security
-    if (!validate_path(client->path)) {
-        log_message(LOG_WARN, "Invalid/dangerous path detected: %s", client->path);
-        send_error_response(403, client);
-        free_client(client);
-        goto cleanup;
-    }
-    
-    // Resolve full filesystem path
     extern struct ServerConfig g_config;
-    client->full_path = resolve_request_path(client->path, g_config.webroot);
-    if (!client->full_path) {
-        log_message(LOG_ERROR, "Failed to resolve path");
-        send_error_response(500, client);
-        free_client(client);
-        goto cleanup;
-    }
-    
-    log_message(LOG_INFO, "Resolved path: %s", client->full_path);
 
-    //Check API endpoint
-    if (strncmp(client->path, "/api/", 5) == 0)
-    {
-        log_message(LOG_INFO, "API endpoint detected - %s", client->full_path);
-        handle_api_request(client);
-        free_client(client);
-        goto cleanup;
-    }
-    
-    // Check cache
-    struct Node* cache_node = cache_lookup(args->tree_head, client->full_path);
-    
-    // Check If-Modified-Since header
-    if (cache_node && cache_node->last_modified && client->modified_since) {
-        if (strcmp(cache_node->last_modified, client->modified_since) <= 0) {
-            log_message(LOG_INFO, "Resource not modified (If-Modified-Since) - sending 304");
-            send_not_modified_response(client, cache_node);
-            free_client(client);
-            goto cleanup;
-        }
-    }
-    
-    // Check ETag header
-    if (cache_node && client->tag != 0) {
-        if (cache_node->file_hash == client->tag) {
-            log_message(LOG_INFO, "ETag match (client: %u, cache: %u) - sending 304", 
-                       client->tag, cache_node->file_hash);
-            send_not_modified_response(client, cache_node);
-            free_client(client);
-            goto cleanup;
-        }
-    }
-    
-    // Open requested file
-    client->fd = open(client->full_path, O_RDONLY);
-    if (client->fd < 0) {
-        if (errno == ENOENT) {
-            log_message(LOG_WARN, "File not found: %s", client->full_path);
-            send_error_response(404, client);
-        } else if (errno == EACCES) {
-            log_message(LOG_WARN, "Permission denied: %s", client->full_path);
-            send_error_response(403, client);
+    /* 30-second idle timeout so keep-alive threads don't hold indefinitely. */
+    struct timeval tv = { .tv_sec = 30, .tv_usec = 0 };
+    setsockopt(args->client_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+    /* Convert the client address once — it doesn't change between requests. */
+    char ip_buf[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &args->client_addr.sin_addr, ip_buf, sizeof(ip_buf));
+
+    while (1) {
+        char request_buffer[8192];
+        memset(request_buffer, 0, sizeof(request_buffer));
+
+        ssize_t recv_len;
+        if (args->ssl) {
+            recv_len = SSL_read(args->ssl, request_buffer, sizeof(request_buffer) - 1);
         } else {
-            log_message(LOG_ERROR, "Failed to open file %s: %s", 
-                       client->full_path, strerror(errno));
-            send_error_response(500, client);
+            recv_len = recv(args->client_fd, request_buffer, sizeof(request_buffer) - 1, 0);
         }
+
+        if (recv_len <= 0) {
+            if (recv_len < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+                log_message(LOG_INFO, "Keep-alive idle timeout, closing connection");
+            else
+                log_message(LOG_WARN, "Client disconnected or read error");
+            goto cleanup;
+        }
+
+        request_buffer[recv_len] = '\0';
+        log_message(LOG_DEBUG, "Received %ld bytes from client", recv_len);
+
+        Client* client = parse_http_request(request_buffer, args->client_fd, args->ssl);
+        if (!client) {
+            log_message(LOG_ERROR, "Failed to parse request");
+            goto cleanup;
+        }
+
+        /* inet_ntop writes into a caller-supplied buffer, safe for concurrent threads. */
+        client->client_ip = strdup(ip_buf);
+        client->client_port = ntohs(args->client_addr.sin_port);
+
+        log_message(LOG_INFO, "Request from %s:%d - %s %s %s",
+                    client->client_ip, client->client_port,
+                    client->method, client->path, client->version);
+
+        print_client_info(client);
+
+        // Handle TLS upgrade redirect (HTTP only)
+        if (!args->ssl && client->upgrade_tls) {
+            char redirect_url[512];
+            snprintf(redirect_url, sizeof(redirect_url), "https://%s%s",
+                     client->host ? client->host : "localhost", client->path);
+            log_message(LOG_INFO, "Redirecting to HTTPS: %s", redirect_url);
+            send_redirect_response(redirect_url, client);
+            free_client(client);
+            goto cleanup;
+        }
+
+        // Validate HTTP method
+        if (!validate_http_method(client->method)) {
+            if (strcmp(client->method, "OPTIONS") == 0) {
+                log_message(LOG_INFO, "Handling OPTIONS request");
+                send_options_response(client);
+            } else {
+                log_message(LOG_WARN, "Unsupported method: %s", client->method);
+                send_error_response(501, client);
+            }
+            free_client(client);
+            goto cleanup;
+        }
+
+        if (strncmp(client->method, "POST", 4) == 0) {
+            handle_post(client);
+            free_client(client);
+            goto cleanup;
+        }
+
+        // Validate path for security
+        if (!validate_path(client->path)) {
+            log_message(LOG_WARN, "Invalid/dangerous path detected: %s", client->path);
+            send_error_response(403, client);
+            free_client(client);
+            goto cleanup;
+        }
+
+        // Resolve full filesystem path
+        client->full_path = resolve_request_path(client->path, g_config.webroot);
+        if (!client->full_path) {
+            log_message(LOG_ERROR, "Failed to resolve path");
+            send_error_response(500, client);
+            free_client(client);
+            goto cleanup;
+        }
+
+        log_message(LOG_INFO, "Resolved path: %s", client->full_path);
+
+        // Check API endpoint
+        if (strncmp(client->path, "/api/", 5) == 0) {
+            log_message(LOG_INFO, "API endpoint detected - %s", client->full_path);
+            handle_api_request(client);
+            free_client(client);
+            goto cleanup;
+        }
+
+        struct Node* cache_node = cache_lookup(args->tree_head, client->full_path);
+
+        // Check If-Modified-Since header
+        if (cache_node && cache_node->last_modified && client->modified_since) {
+            if (compare_http_dates(cache_node->last_modified, client->modified_since) <= 0) {
+                log_message(LOG_INFO, "Resource not modified (If-Modified-Since) - sending 304");
+                send_not_modified_response(client, cache_node);
+                int keep_alive = client->connection_status;
+                free_client(client);
+                if (keep_alive) continue;
+                goto cleanup;
+            }
+        }
+
+        // Check ETag header
+        if (cache_node && client->tag != 0) {
+            if (cache_node->file_hash == client->tag) {
+                log_message(LOG_INFO, "ETag match (client: %u, cache: %u) - sending 304",
+                           client->tag, cache_node->file_hash);
+                send_not_modified_response(client, cache_node);
+                int keep_alive = client->connection_status;
+                free_client(client);
+                if (keep_alive) continue;
+                goto cleanup;
+            }
+        }
+
+        // Open requested file
+        client->fd = open(client->full_path, O_RDONLY);
+        if (client->fd < 0) {
+            if (errno == ENOENT) {
+                log_message(LOG_WARN, "File not found: %s", client->full_path);
+                send_error_response(404, client);
+            } else if (errno == EACCES) {
+                log_message(LOG_WARN, "Permission denied: %s", client->full_path);
+                send_error_response(403, client);
+            } else {
+                log_message(LOG_ERROR, "Failed to open file %s: %s",
+                           client->full_path, strerror(errno));
+                send_error_response(500, client);
+            }
+            free_client(client);
+            goto cleanup;
+        }
+
+        int result = send_file_response(client, cache_node);
+        if (result < 0) {
+            log_message(LOG_ERROR, "Failed to send file response");
+        }
+
+        int keep_alive = client->connection_status;
         free_client(client);
-        goto cleanup;
+        if (!keep_alive) goto cleanup;
     }
-    
-    // Send file response (handles both GET and HEAD, handles ranges)
-    int result = send_file_response(client, cache_node);
-    if (result < 0) {
-        log_message(LOG_ERROR, "Failed to send file response");
-    }
-    
-    // Cleanup
-    free_client(client);
 
 cleanup:
-    // Cleanup SSL
     if (args->ssl) {
         SSL_shutdown(args->ssl);
         SSL_free(args->ssl);
     }
-    
-    // Close socket
+
     close(args->client_fd);
     
     // Free thread arguments
@@ -446,7 +480,7 @@ int main(int argc, char** argv) {
     }
     
     char mime_table_path[256];
-    sprintf(mime_table_path, "%s/misc/mime.types", SERVER_PATH);
+    snprintf(mime_table_path, sizeof(mime_table_path), "%s/misc/mime.types", SERVER_PATH);
 
     mime_table = mime_init(mime_table_path);
     if (mime_table == NULL) {
@@ -577,8 +611,9 @@ int main(int argc, char** argv) {
             
             // Perform SSL handshake
             if (SSL_accept(ssl) <= 0) {
-                log_message(LOG_ERROR, "SSL handshake failed");
-                ERR_print_errors_fp(stderr);
+                /* Client-side alerts (unknown CA, cert rejected) are normal with
+                 * self-signed certs; clear the queue rather than printing noise. */
+                ERR_clear_error();
                 SSL_free(ssl);
                 close(client_fd);
                 continue;

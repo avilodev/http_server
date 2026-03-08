@@ -1,5 +1,11 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -pthread -O2 -g -Isrc
+
+# SERVER_PATH: absolute path to the project root, injected into every .c file
+# as the -DSERVER_PATH="..." compiler flag.  Override at build time with:
+#   make SERVER_PATH=/custom/path
+SERVER_PATH ?= $(abspath .)
+
+CFLAGS  = -Wall -Wextra -pthread -O2 -g -Isrc -DSERVER_PATH=\"$(SERVER_PATH)\"
 LDFLAGS = -lssl -lcrypto -lsqlite3 -lsodium
 
 # Directories

@@ -67,7 +67,9 @@ int send_file_response(Client* client, struct Node* cache_node) {
         } else {
             start = client->start_range;
             
-            if (client->end_range > 0 && client->end_range < file_size) {
+            /* end_range == -1 is the sentinel for "to EOF"; any value >= 0 is a
+             * client-specified end byte, including 0 for a bytes=0-0 request. */
+            if (client->end_range >= 0 && client->end_range < file_size) {
                 end = client->end_range;
             } else {
                 end = file_size - 1;
@@ -187,25 +189,32 @@ int send_file_response(Client* client, struct Node* cache_node) {
             break;
         }
         
-        // Send data
-        ssize_t bytes_sent;
-        if (client->is_ssl) {
-            bytes_sent = SSL_write(client->ssl, buffer, bytes_read);
-        } else {
-            bytes_sent = send(client->client_fd, buffer, bytes_read, 0);
-        }
-        
-        if (bytes_sent <= 0) {
-            // Client disconnected (normal for video seeking)
-            if (errno == ECONNRESET || errno == EPIPE) {
-                log_message(LOG_INFO, "Client disconnected (sent %ld/%ld bytes)",
-                           total_sent, content_length);
-                return 0;
+        /* Inner loop: send all bytes_read bytes before the next read().
+         * Without this, a short write advances the file fd past unsent bytes,
+         * causing a gap in the response. EINTR is retried; EPIPE/ECONNRESET
+         * indicate a client disconnect, which is normal for video seeking. */
+        ssize_t write_offset = 0;
+        while (write_offset < bytes_read) {
+            ssize_t bytes_sent;
+            if (client->is_ssl) {
+                bytes_sent = SSL_write(client->ssl, buffer + write_offset, bytes_read - write_offset);
+            } else {
+                bytes_sent = send(client->client_fd, buffer + write_offset, bytes_read - write_offset, 0);
             }
-            log_message(LOG_ERROR, "Send failed: %s", strerror(errno));
-            return -1;
+
+            if (bytes_sent <= 0) {
+                if (errno == EINTR) continue;
+                if (errno == ECONNRESET || errno == EPIPE) {
+                    log_message(LOG_INFO, "Client disconnected (sent %ld/%ld bytes)",
+                               total_sent, content_length);
+                    return 0;
+                }
+                log_message(LOG_ERROR, "Send failed: %s", strerror(errno));
+                return -1;
+            }
+            write_offset += bytes_sent;
         }
-        
+
         remaining -= bytes_read;
         total_sent += bytes_read;
     }
@@ -389,9 +398,12 @@ const char* get_status_message(int code) {
  * @see get_current_http_date()
  */
 char* format_http_date(time_t timestamp) {
-    static char buffer[64];
-    struct tm* tm_info = gmtime(&timestamp);
-    strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", tm_info);
+    char buffer[64];
+    struct tm tm_info;
+    /* gmtime_r writes into a caller-supplied struct rather than a shared static,
+     * making it safe to call concurrently from multiple threads. */
+    gmtime_r(&timestamp, &tm_info);
+    strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", &tm_info);
     return strdup(buffer);
 }
 
@@ -557,10 +569,10 @@ void send_api_response(Client* client, int code, char* mime_type, char* body)
     char headers[MAX_HEADER_SIZE];
     int header_len = 0;
     
-    header_len += sprintf(headers, "%s %d %s\r\n", client->version, code, get_status_message(code));
-    header_len += sprintf(headers + header_len, "Content-Type: %s\r\n", mime_type);
-    header_len += sprintf(headers + header_len, "Content-Length: %ld\r\n\r\n", strlen(body));
-    
+    header_len += snprintf(headers, MAX_HEADER_SIZE, "%s %d %s\r\n", client->version, code, get_status_message(code));
+    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "Content-Type: %s\r\n", mime_type);
+    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "Content-Length: %ld\r\n\r\n", strlen(body));
+
     if (client->is_ssl) {
         SSL_write(client->ssl, headers, header_len);
         SSL_write(client->ssl, body, strlen(body));
@@ -568,9 +580,6 @@ void send_api_response(Client* client, int code, char* mime_type, char* body)
         send(client->client_fd, headers, header_len, 0);
         send(client->client_fd, body, strlen(body), 0);
     }
-    
-    char log_str[SMALL_ALLOCATE];
-    sprintf(log_str, "Sent %d %s from API response", code, get_status_message(code));
 
-    log_message(LOG_INFO, log_str);
+    log_message(LOG_INFO, "Sent %d %s from API response", code, get_status_message(code));
 }

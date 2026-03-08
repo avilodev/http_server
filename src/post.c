@@ -139,16 +139,12 @@ int add_user(sqlite3* db, const char* username, const char* password)
     
     sqlite3_finalize(stmt);
     
-    char error_log_message[SMALL_ALLOCATE];
-    
     if (rc != SQLITE_DONE) {
         if (rc == SQLITE_CONSTRAINT) {
-            sprintf(error_log_message, "Username already exists: %s", username);
+            log_message(LOG_INFO, "Username already exists: %s", username);
         } else {
-            sprintf(error_log_message, "Execution Failed: %s", username);
+            log_message(LOG_INFO, "Execution failed for user: %s", username);
         }
-
-        log_message(LOG_INFO, error_log_message);
         return rc;
     }
     
@@ -241,9 +237,7 @@ void handle_registration(sqlite3* db, Client* client)
     
     int result = add_user(db, creds->username, creds->password);
 
-    char register_log_message[SMALL_ALLOCATE];
-    sprintf(register_log_message, "New User Created: %s", creds->username);
-    log_message(LOG_INFO, register_log_message);
+    log_message(LOG_INFO, "New user created: %s", creds->username);
     
     if (result == SQLITE_OK) {
         //printf("✓ Registration successful for user: %s\n", creds->username);
@@ -281,17 +275,11 @@ void handle_login(sqlite3* db, Client* client)
     if (verify_user(db, creds->username, creds->password)) {
         //printf("✓ Login successful for user: %s\n", creds->username);
 
-        char login_log_message[SMALL_ALLOCATE];
-        sprintf(login_log_message, "Successful User login: %s", creds->username);
-        log_message(LOG_INFO, login_log_message);
-        
+        log_message(LOG_INFO, "Successful user login: %s", creds->username);
+
         send_redirect_response("/landing.html", client);
     } else {
-        //printf("✗ Login failed for user: %s\n", creds->username);
-
-        char login_log_message[SMALL_ALLOCATE];
-        sprintf(login_log_message, "Failed User login: %s", creds->username);
-        log_message(LOG_INFO, login_log_message);
+        log_message(LOG_INFO, "Failed user login: %s", creds->username);
 
         send_error_response(401, client);  // 401 Unauthorized
     }

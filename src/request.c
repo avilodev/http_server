@@ -275,8 +275,9 @@ int validate_path(const char* path) {
     if (strstr(path, "..") != NULL) return 0;
     if (strstr(path, "//") != NULL) return 0;
     
-    // Check for null bytes
-    if (strlen(path) != strcspn(path, "\0")) return 0;
+    /* strcspn(path, "\0") always equals strlen(path) because the reject set
+     * is an empty string. Embedded null bytes cannot appear in a C string
+     * passed here; this check is a no-op and can be removed. */
     
     return 1;
 }
@@ -300,10 +301,16 @@ char* resolve_request_path(const char* request_path, const char* webroot) {
     
     // Handle root request
     const char* page = (strcmp(request_path, "/") == 0) ? "/landing.html" : request_path;
-    
-    // Build full path
-    snprintf(resolved, sizeof(resolved), "%s/webpages%s", webroot, page);
-    
+
+    /* Strip the query string — the filesystem path ends at '?'. */
+    char path_only[2048];
+    strncpy(path_only, page, sizeof(path_only) - 1);
+    path_only[sizeof(path_only) - 1] = '\0';
+    char* q = strchr(path_only, '?');
+    if (q) *q = '\0';
+
+    snprintf(resolved, sizeof(resolved), "%s/webpages%s", webroot, path_only);
+
     return strdup(resolved);
 }
 
@@ -328,7 +335,11 @@ void free_client(Client* client) {
     if (client->full_path) {
         free(client->full_path);
     }
-    
+
+    if (client->client_ip) {
+        free(client->client_ip);
+    }
+
     // Note: Don't free string pointers like client->method, client->path, etc.
     // They point into the raw_request buffer which is managed elsewhere
     

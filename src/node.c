@@ -24,55 +24,27 @@
 struct Node* init_tree() {
     struct Node* head = NULL;
 
-    // Build find command to locate all files in webpages directory
-    char* webpages_dir = malloc(READSIZE);
-    if (!webpages_dir) {
-        fprintf(stderr, "Failed to allocate memory for find command\n");
+    char cmd[READSIZE];
+    snprintf(cmd, sizeof(cmd), "find %s/webpages -type f", SERVER_PATH);
+
+    /* popen pipes find output directly into this process, one line at a time.
+     * This avoids the intermediate results.txt file and the 4096-byte buffer
+     * limit that previously caused large webroot directories to be truncated. */
+    FILE* fp = popen(cmd, "r");
+    if (!fp) {
+        fprintf(stderr, "Failed to run find command\n");
         return NULL;
     }
-    
-    sprintf(webpages_dir, "find %s/webpages -type f > results.txt", SERVER_PATH);
-    
-    int ret = system(webpages_dir);
-    if (ret != 0) {
-        fprintf(stderr, "Warning: system('%s') failed with code %d\n", webpages_dir, ret);
-    }
-    free(webpages_dir);
 
-    // Read the results file
-    int fd = open("results.txt", O_RDONLY);
-    if (fd < 0) {
-        fprintf(stderr, "Failed to open results.txt\n");
-        return NULL; 
+    char line[512];
+    while (fgets(line, sizeof(line), fp)) {
+        line[strcspn(line, "\n")] = '\0';
+        if (line[0] != '\0') {
+            head = add_node(head, line);
+        }
     }
 
-    char buffer[READSIZE];
-    int n = read(fd, buffer, sizeof(buffer) - 1);
-    close(fd);
-    
-    if (n < 0) {
-        fprintf(stderr, "Read failed in tree initialization\n");
-        return NULL;
-    }
-    buffer[n] = '\0';
-
-    // Parse file paths and build tree
-    char* tokptr;
-    char* line = strtok_r(buffer, "\n", &tokptr);
-    
-    if (line) {
-        head = add_node(head, line);
-    }
-
-    while ((line = strtok_r(NULL, "\n", &tokptr)) != NULL) {
-        head = add_node(head, line);
-    }
-    
-    // Clean up temporary file
-    if (unlink("results.txt") < 0) {
-        fprintf(stderr, "Warning: Could not delete results.txt\n");
-    }
-
+    pclose(fp);
     return head;
 }
 
@@ -143,8 +115,12 @@ struct Node* add_node(struct Node* head, char* filename) {
         return new_node;
     }
 
-    // Insert into existing tree
-    insert_node(head, new_node);
+    // Insert into existing tree; free the node if a duplicate path hash was found
+    if (!insert_node(head, new_node)) {
+        free(new_node->path);
+        free(new_node->last_modified);
+        free(new_node);
+    }
     return head;
 }
 
@@ -257,8 +233,10 @@ char* update_last_modified(char* filename) {
         return NULL;
     }
     
-    struct tm* tm_info = gmtime(&file_stat.st_mtime);
-    strftime(time_buf, READSIZE, "%a, %d %b %Y %H:%M:%S GMT", tm_info);
+    struct tm tm_info;
+    /* gmtime_r writes into the supplied struct rather than a shared static buffer. */
+    gmtime_r(&file_stat.st_mtime, &tm_info);
+    strftime(time_buf, READSIZE, "%a, %d %b %Y %H:%M:%S GMT", &tm_info);
     
     return time_buf;
 }
@@ -278,27 +256,29 @@ char* update_last_modified(char* filename) {
  *
  * @see add_node()
  */
-void insert_node(struct Node* head, struct Node* new_node) {
+/* Returns 1 if new_node was inserted, 0 if a duplicate hash was found.
+ * Caller must free new_node when 0 is returned. */
+int insert_node(struct Node* head, struct Node* new_node) {
     struct Node* curr = head;
-    
+
     while (curr) {
         if (curr->path_hash == new_node->path_hash) {
-            // Duplicate found, don't insert
-            return;
+            return 0;
         } else if (curr->path_hash > new_node->path_hash) {
             if (!curr->left) {
                 curr->left = new_node;
-                return;
+                return 1;
             }
             curr = curr->left;
         } else {
             if (!curr->right) {
                 curr->right = new_node;
-                return;
+                return 1;
             }
             curr = curr->right;
         }
     }
+    return 0;
 }
 
 /**
