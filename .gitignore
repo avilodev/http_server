@@ -1,1 +1,25 @@
+# Build output
+bin/
+obj/
+
+# TLS certificates and private keys
 keys/
+
+# Runtime data
+server.log
+*.log
+users.db
+*.db
+
+# Backup artifacts
+backups/legacy/server
+
+# IDE / editor
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
