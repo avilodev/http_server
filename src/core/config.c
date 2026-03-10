@@ -23,8 +23,8 @@ static void init_default_config(void) {
     char cert_path[SMALL_ALLOCATE];
     char server_key_path[SMALL_ALLOCATE];
 
-    sprintf(cert_path, "%s/keys/cert.pem", SERVER_PATH);
-    sprintf(server_key_path, "%s/keys/key.pem", SERVER_PATH);
+    snprintf(cert_path, SMALL_ALLOCATE, "%s/etc/ssl/cert.pem", SERVER_PATH);
+    snprintf(server_key_path, SMALL_ALLOCATE, "%s/etc/ssl/key.pem", SERVER_PATH);
 
     g_config.cert_path = strdup(cert_path);
     g_config.key_path = strdup(server_key_path);

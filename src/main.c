@@ -10,6 +10,8 @@
 #include "mime.h"
 #include "api.h"
 #include "post.h"
+#include "session.h"
+#include "error_pages.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +19,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <errno.h>
-#include <fcntl.h>
+#include <fcntl.h> 
 
 #include <sys/socket.h>
 #include <sys/select.h>
@@ -43,6 +45,14 @@ ht* mime_table;
 
 //sql database
 sqlite3* g_database = NULL;
+pthread_mutex_t g_db_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// Global cache tree and its rwlock (readers = worker threads, writer = cache refresh)
+static struct Node* g_cache_tree = NULL;
+static pthread_rwlock_t g_cache_rwlock = PTHREAD_RWLOCK_INITIALIZER;
+
+// Server start time for uptime calculation
+time_t g_server_start = 0;
 
 /**
  * Signal handler for managing server and cache operations.
@@ -57,15 +67,16 @@ sqlite3* g_database = NULL;
  * @warning This function runs in signal context - keep it minimal
  */
 void signal_handler(int signum) {
+    /* async-signal-safe: only write() and volatile sig_atomic_t assignments */
     switch (signum) {
         case SIGINT:
         case SIGTERM:
         case SIGQUIT:
-            printf("\nReceived shutdown signal (%d)\n", signum);
+            write(STDERR_FILENO, "\nShutdown signal received\n", 26);
             g_shutdown = 1;
             break;
         case SIGUSR1:
-            printf("Received cache refresh signal\n");
+            write(STDERR_FILENO, "Cache refresh signal received\n", 30);
             g_refresh_cache = 1;
             break;
         default:
@@ -146,9 +157,7 @@ void* handle_client_thread(void* arg) {
     struct timeval tv = { .tv_sec = 30, .tv_usec = 0 };
     setsockopt(args->client_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-    /* Convert the client address once — it doesn't change between requests. */
-    char ip_buf[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &args->client_addr.sin_addr, ip_buf, sizeof(ip_buf));
+    /* IP and port are already resolved at accept() time for both IPv4 and IPv6. */
 
     while (1) {
         char request_buffer[8192];
@@ -178,9 +187,8 @@ void* handle_client_thread(void* arg) {
             goto cleanup;
         }
 
-        /* inet_ntop writes into a caller-supplied buffer, safe for concurrent threads. */
-        client->client_ip = strdup(ip_buf);
-        client->client_port = ntohs(args->client_addr.sin_port);
+        client->client_ip   = strdup(args->client_ip);
+        client->client_port = args->client_port;
 
         log_message(LOG_INFO, "Request from %s:%d - %s %s %s",
                     client->client_ip, client->client_port,
@@ -245,7 +253,34 @@ void* handle_client_thread(void* arg) {
             goto cleanup;
         }
 
-        struct Node* cache_node = cache_lookup(args->tree_head, client->full_path);
+        // Session enforcement for protected pages
+        {
+            static const char* protected_prefixes[] = {
+                "/landing", "/dashboard", "/profile", NULL
+            };
+            int is_protected = 0;
+            for (int i = 0; protected_prefixes[i]; i++) {
+                if (strncmp(client->path, protected_prefixes[i],
+                            strlen(protected_prefixes[i])) == 0) {
+                    is_protected = 1;
+                    break;
+                }
+            }
+            if (is_protected) {
+                const char* user = client->session_token
+                    ? session_get_user(client->session_token) : NULL;
+                if (!user) {
+                    log_message(LOG_INFO, "Unauthenticated access to %s - redirecting to login",
+                                client->path);
+                    send_redirect_response("/login.html", client);
+                    free_client(client);
+                    goto cleanup;
+                }
+            }
+        }
+
+        pthread_rwlock_rdlock(&g_cache_rwlock);
+        struct Node* cache_node = cache_lookup(g_cache_tree, client->full_path);
 
         // Check If-Modified-Since header
         if (cache_node && cache_node->last_modified && client->modified_since) {
@@ -254,6 +289,7 @@ void* handle_client_thread(void* arg) {
                 send_not_modified_response(client, cache_node);
                 int keep_alive = client->connection_status;
                 free_client(client);
+                pthread_rwlock_unlock(&g_cache_rwlock);
                 if (keep_alive) continue;
                 goto cleanup;
             }
@@ -267,30 +303,36 @@ void* handle_client_thread(void* arg) {
                 send_not_modified_response(client, cache_node);
                 int keep_alive = client->connection_status;
                 free_client(client);
+                pthread_rwlock_unlock(&g_cache_rwlock);
                 if (keep_alive) continue;
                 goto cleanup;
             }
         }
 
-        // Open requested file
-        client->fd = open(client->full_path, O_RDONLY);
-        if (client->fd < 0) {
-            if (errno == ENOENT) {
-                log_message(LOG_WARN, "File not found: %s", client->full_path);
-                send_error_response(404, client);
-            } else if (errno == EACCES) {
-                log_message(LOG_WARN, "Permission denied: %s", client->full_path);
-                send_error_response(403, client);
-            } else {
-                log_message(LOG_ERROR, "Failed to open file %s: %s",
-                           client->full_path, strerror(errno));
-                send_error_response(500, client);
+        // HEAD requests only need metadata — skip open() and let send_file_response
+        // use stat() internally. For all other methods, open the file normally.
+        if (strcmp(client->method, "HEAD") != 0) {
+            client->fd = open(client->full_path, O_RDONLY);
+            if (client->fd < 0) {
+                if (errno == ENOENT) {
+                    log_message(LOG_WARN, "File not found: %s", client->full_path);
+                    send_error_response(404, client);
+                } else if (errno == EACCES) {
+                    log_message(LOG_WARN, "Permission denied: %s", client->full_path);
+                    send_error_response(403, client);
+                } else {
+                    log_message(LOG_ERROR, "Failed to open file %s: %s",
+                               client->full_path, strerror(errno));
+                    send_error_response(500, client);
+                }
+                free_client(client);
+                pthread_rwlock_unlock(&g_cache_rwlock);
+                goto cleanup;
             }
-            free_client(client);
-            goto cleanup;
         }
 
         int result = send_file_response(client, cache_node);
+        pthread_rwlock_unlock(&g_cache_rwlock);
         if (result < 0) {
             log_message(LOG_ERROR, "Failed to send file response");
         }
@@ -362,7 +404,45 @@ int create_server_socket(int port) {
         return -1;
     }
     
-    printf("Server listening on port %d\n", port);
+    printf("Server listening on port %d (IPv4)\n", port);
+    return sock;
+}
+
+/**
+ * Creates an IPv6-only TCP server socket on the given port.
+ * IPv4 clients use the separate IPv4 socket; this handles IPv6-native clients.
+ *
+ * @param port Port to bind
+ * @return Socket fd, or -1 on failure (non-fatal: IPv6 may be unavailable)
+ */
+int create_server_socket6(int port) {
+    int sock = socket(AF_INET6, SOCK_STREAM, 0);
+    if (sock < 0) return -1;
+
+    int opt = 1;
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    // IPV6_V6ONLY=1: accept IPv6 connections only; IPv4 handled by the other socket
+    int v6only = 1;
+    setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only));
+
+    struct sockaddr_in6 addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin6_family = AF_INET6;
+    addr.sin6_addr   = in6addr_any;
+    addr.sin6_port   = htons(port);
+
+    if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        close(sock);
+        return -1;
+    }
+
+    if (listen(sock, BACKLOG) < 0) {
+        close(sock);
+        return -1;
+    }
+
+    printf("Server listening on port %d (IPv6)\n", port);
     return sock;
 }
 
@@ -396,8 +476,11 @@ int main(int argc, char** argv) {
     
     extern ServerConfig g_config;
     
+    // Record server start time
+    g_server_start = time(NULL);
+
     // Initialize logger
-    log_init("server.log");
+    log_init(SERVER_PATH "/var/log/server.log");
     log_message(LOG_INFO, "Server starting - PID: %d", getpid());
     
     // Setup signal handlers
@@ -424,43 +507,51 @@ int main(int argc, char** argv) {
     log_message(LOG_INFO, "Database initialized successfully");
     
     // Initialize cache tree
-    struct Node* cache_tree = cache_tree_init(g_config.webroot);
-    if (!cache_tree) {
+    g_cache_tree = cache_tree_init(g_config.webroot);
+    if (!g_cache_tree) {
         log_message(LOG_ERROR, "Failed to initialize cache tree");
         return 1;
     }
+
+    // Load error pages into memory
+    error_pages_init(g_config.webroot);
     
     // Initialize OpenSSL
     init_openssl();
     SSL_CTX* ssl_ctx = create_ssl_context();
     if (!ssl_ctx) {
         log_message(LOG_ERROR, "Failed to create SSL context");
-        cache_tree_free(cache_tree);
+        cache_tree_free(g_cache_tree);
         cleanup_openssl();
         return 1;
     }
     configure_ssl_context(ssl_ctx);
     
-    // Create HTTP socket
+    // Create IPv4 HTTP/HTTPS sockets
     int http_sock = create_server_socket(g_config.http_port);
     if (http_sock < 0) {
         log_message(LOG_ERROR, "Failed to create HTTP socket");
         SSL_CTX_free(ssl_ctx);
         cleanup_openssl();
-        cache_tree_free(cache_tree);
+        cache_tree_free(g_cache_tree);
         return 1;
     }
-    
-    // Create HTTPS socket
+
     int https_sock = create_server_socket(g_config.https_port);
     if (https_sock < 0) {
         log_message(LOG_ERROR, "Failed to create HTTPS socket");
         close(http_sock);
         SSL_CTX_free(ssl_ctx);
         cleanup_openssl();
-        cache_tree_free(cache_tree);
+        cache_tree_free(g_cache_tree);
         return 1;
     }
+
+    // Create IPv6 sockets (optional — non-fatal if IPv6 is unavailable)
+    int http6_sock  = create_server_socket6(g_config.http_port);
+    int https6_sock = create_server_socket6(g_config.https_port);
+    if (http6_sock  < 0) log_message(LOG_WARN, "IPv6 HTTP socket unavailable");
+    if (https6_sock < 0) log_message(LOG_WARN, "IPv6 HTTPS socket unavailable");
     
     // Create thread pool
     struct ThreadPoolConfig pool_config = {
@@ -475,12 +566,12 @@ int main(int argc, char** argv) {
         close(https_sock);
         SSL_CTX_free(ssl_ctx);
         cleanup_openssl();
-        cache_tree_free(cache_tree);
+        cache_tree_free(g_cache_tree);
         return 1;
     }
     
     char mime_table_path[256];
-    snprintf(mime_table_path, sizeof(mime_table_path), "%s/misc/mime.types", SERVER_PATH);
+    snprintf(mime_table_path, sizeof(mime_table_path), "%s/etc/mime.types", SERVER_PATH);
 
     mime_table = mime_init(mime_table_path);
     if (mime_table == NULL) {
@@ -504,24 +595,24 @@ int main(int argc, char** argv) {
         // Handle cache refresh signal
         if (g_refresh_cache) {
             log_message(LOG_INFO, "Refreshing cache tree");
-            
-            // Wait for pending work to complete
-            threadpool_wait(g_thread_pool);
-            
-            // Refresh cache
-            cache_tree_refresh(&cache_tree, g_config.webroot);
-            
+
+            // Acquire write lock — blocks until all readers (worker threads) finish
+            pthread_rwlock_wrlock(&g_cache_rwlock);
+            cache_tree_refresh(&g_cache_tree, g_config.webroot);
+            pthread_rwlock_unlock(&g_cache_rwlock);
+
             g_refresh_cache = 0;
             log_message(LOG_INFO, "Cache refresh complete");
         }
         
-        // Setup select() for both sockets
+        // Setup select() for all active sockets (IPv4 + optional IPv6)
         fd_set read_fds;
         FD_ZERO(&read_fds);
-        FD_SET(http_sock, &read_fds);
+        FD_SET(http_sock,  &read_fds);
         FD_SET(https_sock, &read_fds);
-        
         int max_fd = (http_sock > https_sock) ? http_sock : https_sock;
+        if (http6_sock  >= 0) { FD_SET(http6_sock,  &read_fds); if (http6_sock  > max_fd) max_fd = http6_sock;  }
+        if (https6_sock >= 0) { FD_SET(https6_sock, &read_fds); if (https6_sock > max_fd) max_fd = https6_sock; }
         
         // Use timeout so we can check signals periodically
         struct timeval timeout;
@@ -544,105 +635,111 @@ int main(int argc, char** argv) {
             continue;
         }
         
-        // Handle new HTTP connection
+        // ── IPv4 HTTP ──────────────────────────────────────────────────────────
         if (FD_ISSET(http_sock, &read_fds)) {
-            struct sockaddr_in client_addr;
-            socklen_t addr_len = sizeof(client_addr);
-            
-            int client_fd = accept(http_sock, (struct sockaddr*)&client_addr, &addr_len);
-            if (client_fd < 0) {
-                if (errno != EINTR) {
-                    log_message(LOG_ERROR, "accept() failed on HTTP socket: %s", 
-                               strerror(errno));
+            struct sockaddr_in ca;
+            socklen_t al = sizeof(ca);
+            int client_fd = accept(http_sock, (struct sockaddr*)&ca, &al);
+            if (client_fd < 0) { if (errno != EINTR) log_message(LOG_ERROR, "accept() HTTP4: %s", strerror(errno)); }
+            else {
+                ThreadArgs* args = malloc(sizeof(ThreadArgs));
+                if (!args) { close(client_fd); }
+                else {
+                    args->client_fd   = client_fd;
+                    args->ssl         = NULL;
+                    args->client_port = ntohs(ca.sin_port);
+                    inet_ntop(AF_INET, &ca.sin_addr, args->client_ip, sizeof(args->client_ip));
+                    log_message(LOG_INFO, "New HTTP connection from %s:%d", args->client_ip, args->client_port);
+                    if (threadpool_add_work(g_thread_pool, handle_client_thread, args) != 0) {
+                        log_message(LOG_WARN, "Thread pool queue full, rejecting connection");
+                        close(client_fd); free(args);
+                    }
                 }
-                continue;
-            }
-            
-            log_message(LOG_INFO, "New HTTP connection from %s:%d", 
-                       inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-            
-            // Allocate thread arguments
-            ThreadArgs* args = malloc(sizeof(ThreadArgs));
-            if (!args) {
-                log_message(LOG_ERROR, "Failed to allocate thread args");
-                close(client_fd);
-                continue;
-            }
-            
-            args->client_fd = client_fd;
-            args->ssl = NULL;
-            args->client_addr = client_addr;
-            args->tree_head = cache_tree;
-            
-            // Submit to thread pool
-            if (threadpool_add_work(g_thread_pool, handle_client_thread, args) != 0) {
-                log_message(LOG_WARN, "Thread pool queue full, rejecting connection");
-                close(client_fd);
-                free(args);
             }
         }
-        
-        // Handle new HTTPS connection
+
+        // ── IPv4 HTTPS ─────────────────────────────────────────────────────────
         if (FD_ISSET(https_sock, &read_fds)) {
-            struct sockaddr_in client_addr;
-            socklen_t addr_len = sizeof(client_addr);
-            
-            int client_fd = accept(https_sock, (struct sockaddr*)&client_addr, &addr_len);
-            if (client_fd < 0) {
-                if (errno != EINTR) {
-                    log_message(LOG_ERROR, "accept() failed on HTTPS socket: %s", 
-                               strerror(errno));
+            struct sockaddr_in ca;
+            socklen_t al = sizeof(ca);
+            int client_fd = accept(https_sock, (struct sockaddr*)&ca, &al);
+            if (client_fd < 0) { if (errno != EINTR) log_message(LOG_ERROR, "accept() HTTPS4: %s", strerror(errno)); }
+            else {
+                SSL* ssl = SSL_new(ssl_ctx);
+                if (!ssl) { close(client_fd); }
+                else {
+                    SSL_set_fd(ssl, client_fd);
+                    if (SSL_accept(ssl) <= 0) { ERR_clear_error(); SSL_free(ssl); close(client_fd); }
+                    else {
+                        ThreadArgs* args = malloc(sizeof(ThreadArgs));
+                        if (!args) { SSL_shutdown(ssl); SSL_free(ssl); close(client_fd); }
+                        else {
+                            args->client_fd   = client_fd;
+                            args->ssl         = ssl;
+                            args->client_port = ntohs(ca.sin_port);
+                            inet_ntop(AF_INET, &ca.sin_addr, args->client_ip, sizeof(args->client_ip));
+                            log_message(LOG_INFO, "New HTTPS connection from %s:%d", args->client_ip, args->client_port);
+                            if (threadpool_add_work(g_thread_pool, handle_client_thread, args) != 0) {
+                                log_message(LOG_WARN, "Thread pool queue full, rejecting connection");
+                                SSL_shutdown(ssl); SSL_free(ssl); close(client_fd); free(args);
+                            }
+                        }
+                    }
                 }
-                continue;
             }
-            
-            log_message(LOG_INFO, "New HTTPS connection from %s:%d", 
-                       inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-            
-            // Create SSL connection
-            SSL* ssl = SSL_new(ssl_ctx);
-            if (!ssl) {
-                log_message(LOG_ERROR, "Failed to create SSL object");
-                close(client_fd);
-                continue;
+        }
+
+        // ── IPv6 HTTP ──────────────────────────────────────────────────────────
+        if (http6_sock >= 0 && FD_ISSET(http6_sock, &read_fds)) {
+            struct sockaddr_in6 ca;
+            socklen_t al = sizeof(ca);
+            int client_fd = accept(http6_sock, (struct sockaddr*)&ca, &al);
+            if (client_fd < 0) { if (errno != EINTR) log_message(LOG_ERROR, "accept() HTTP6: %s", strerror(errno)); }
+            else {
+                ThreadArgs* args = malloc(sizeof(ThreadArgs));
+                if (!args) { close(client_fd); }
+                else {
+                    args->client_fd   = client_fd;
+                    args->ssl         = NULL;
+                    args->client_port = ntohs(ca.sin6_port);
+                    inet_ntop(AF_INET6, &ca.sin6_addr, args->client_ip, sizeof(args->client_ip));
+                    log_message(LOG_INFO, "New HTTP connection from [%s]:%d", args->client_ip, args->client_port);
+                    if (threadpool_add_work(g_thread_pool, handle_client_thread, args) != 0) {
+                        log_message(LOG_WARN, "Thread pool queue full, rejecting connection");
+                        close(client_fd); free(args);
+                    }
+                }
             }
-            
-            SSL_set_fd(ssl, client_fd);
-            
-            // Perform SSL handshake
-            if (SSL_accept(ssl) <= 0) {
-                /* Client-side alerts (unknown CA, cert rejected) are normal with
-                 * self-signed certs; clear the queue rather than printing noise. */
-                ERR_clear_error();
-                SSL_free(ssl);
-                close(client_fd);
-                continue;
-            }
-            
-            log_message(LOG_DEBUG, "SSL handshake successful");
-            
-            // Allocate thread arguments
-            ThreadArgs* args = malloc(sizeof(ThreadArgs));
-            if (!args) {
-                log_message(LOG_ERROR, "Failed to allocate thread args");
-                SSL_shutdown(ssl);
-                SSL_free(ssl);
-                close(client_fd);
-                continue;
-            }
-            
-            args->client_fd = client_fd;
-            args->ssl = ssl;
-            args->client_addr = client_addr;
-            args->tree_head = cache_tree;
-            
-            // Submit to thread pool
-            if (threadpool_add_work(g_thread_pool, handle_client_thread, args) != 0) {
-                log_message(LOG_WARN, "Thread pool queue full, rejecting connection");
-                SSL_shutdown(ssl);
-                SSL_free(ssl);
-                close(client_fd);
-                free(args);
+        }
+
+        // ── IPv6 HTTPS ─────────────────────────────────────────────────────────
+        if (https6_sock >= 0 && FD_ISSET(https6_sock, &read_fds)) {
+            struct sockaddr_in6 ca;
+            socklen_t al = sizeof(ca);
+            int client_fd = accept(https6_sock, (struct sockaddr*)&ca, &al);
+            if (client_fd < 0) { if (errno != EINTR) log_message(LOG_ERROR, "accept() HTTPS6: %s", strerror(errno)); }
+            else {
+                SSL* ssl = SSL_new(ssl_ctx);
+                if (!ssl) { close(client_fd); }
+                else {
+                    SSL_set_fd(ssl, client_fd);
+                    if (SSL_accept(ssl) <= 0) { ERR_clear_error(); SSL_free(ssl); close(client_fd); }
+                    else {
+                        ThreadArgs* args = malloc(sizeof(ThreadArgs));
+                        if (!args) { SSL_shutdown(ssl); SSL_free(ssl); close(client_fd); }
+                        else {
+                            args->client_fd   = client_fd;
+                            args->ssl         = ssl;
+                            args->client_port = ntohs(ca.sin6_port);
+                            inet_ntop(AF_INET6, &ca.sin6_addr, args->client_ip, sizeof(args->client_ip));
+                            log_message(LOG_INFO, "New HTTPS connection from [%s]:%d", args->client_ip, args->client_port);
+                            if (threadpool_add_work(g_thread_pool, handle_client_thread, args) != 0) {
+                                log_message(LOG_WARN, "Thread pool queue full, rejecting connection");
+                                SSL_shutdown(ssl); SSL_free(ssl); close(client_fd); free(args);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -654,6 +751,8 @@ int main(int argc, char** argv) {
     // Stop accepting new connections
     close(http_sock);
     close(https_sock);
+    if (http6_sock  >= 0) close(http6_sock);
+    if (https6_sock >= 0) close(https6_sock);
     printf("Closed listening sockets\n");
     
     // Wait for all pending work to complete
@@ -666,7 +765,8 @@ int main(int argc, char** argv) {
     
     // Cleanup cache tree
     printf("Freeing cache tree...\n");
-    cache_tree_free(cache_tree);
+    cache_tree_free(g_cache_tree);
+    pthread_rwlock_destroy(&g_cache_rwlock);
     
     //Cleanup Mime Table
     printf("Destorying Mime Table\n");
@@ -678,6 +778,13 @@ int main(int argc, char** argv) {
         sqlite3_close(g_database);
         log_message(LOG_INFO, "Database closed");
     }
+    pthread_mutex_destroy(&g_db_mutex);
+
+    // Cleanup session store
+    session_store_destroy();
+
+    // Free error pages
+    error_pages_free();
 
     // Cleanup SSL
     printf("Cleaning up SSL...\n");

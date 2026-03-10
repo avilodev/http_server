@@ -14,9 +14,7 @@
  * @see cleanup_openssl()
  */
 void init_openssl() {
-    SSL_library_init();
-    SSL_load_error_strings();
-    OpenSSL_add_all_algorithms();
+    OPENSSL_init_ssl(OPENSSL_INIT_LOAD_SSL_STRINGS | OPENSSL_INIT_LOAD_CRYPTO_STRINGS, NULL);
 }
 
 /**
@@ -37,11 +35,18 @@ SSL_CTX* create_ssl_context() {
     const SSL_METHOD *method;
     SSL_CTX *ctx;
 
-    method = SSLv23_server_method();
+    method = TLS_server_method();
     ctx = SSL_CTX_new(method);
     if (!ctx) {
         perror("Unable to create SSL context");
         ERR_print_errors_fp(stderr);
+        exit(1);
+    }
+
+    /* Reject TLS 1.0 and 1.1 — require TLS 1.2 or higher. */
+    if (SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION) != 1) {
+        fprintf(stderr, "Failed to set minimum TLS version\n");
+        SSL_CTX_free(ctx);
         exit(1);
     }
 
@@ -52,12 +57,12 @@ SSL_CTX* create_ssl_context() {
  * Configures SSL context with certificate and private key
  *
  * Loads the server's SSL certificate and private key from PEM files located
- * in the SERVER_PATH/keys/ directory. Validates that the private key matches
+ * in the SERVER_PATH/etc/ssl/ directory. Validates that the private key matches
  * the public certificate to ensure proper SSL configuration.
  *
  * @param ctx Pointer to SSL_CTX structure to configure
  *
- * @note Expects cert.pem and key.pem in {SERVER_PATH}/keys/ directory
+ * @note Expects cert.pem and key.pem in {SERVER_PATH}/etc/ssl/ directory
  * @note Exits program if certificate/key loading or validation fails
  *
  * @see create_ssl_context()
@@ -98,8 +103,7 @@ void configure_ssl_context(SSL_CTX *ctx) {
  * @see init_openssl()
  */
 void cleanup_openssl() {
-    EVP_cleanup();
-    ERR_free_strings();
+    OPENSSL_cleanup();
 }
 
 /**

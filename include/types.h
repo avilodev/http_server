@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <openssl/ssl.h>
 
 // Server constants
@@ -14,7 +15,8 @@
 #error "SERVER_PATH must be defined by the build system (see Makefile)"
 #endif
 #define SERVER_VERSION "Snap/0.4"
-#define MAX_REQUEST_SIZE 8192
+#define MAX_REQUEST_SIZE  8192
+#define MAX_BODY_SIZE     65536   /* 64 KB — reject POST bodies larger than this */
 #define MAX_RESPONSE_SIZE 262144
 #define SMALL_ALLOCATE 256
 #define LARGE_ALLOCATE 16384
@@ -65,8 +67,10 @@ typedef struct Client {
     int upgrade_tls;         // Upgrade-Insecure-Requests
 
     char* post_type;         // Content Type of POST headers only
-    char* body;              // Body of Client Request 
-    
+    char* body;              // Body of Client Request
+    long  content_length;    // Value of Content-Length header (-1 = not set)
+    char* session_token;     // Value of "session" cookie (if present)
+
     // SSL
     int is_ssl;
     SSL* ssl;
@@ -76,8 +80,8 @@ typedef struct Client {
 typedef struct ThreadArgs {
     int client_fd;
     SSL* ssl;
-    struct sockaddr_in client_addr;
-    struct Node* tree_head;  // Cache tree
+    char client_ip[INET6_ADDRSTRLEN];  // resolved at accept() for both IPv4 and IPv6
+    int  client_port;
 } ThreadArgs;
 
 // Server configuration

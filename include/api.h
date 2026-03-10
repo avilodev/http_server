@@ -25,11 +25,12 @@ typedef struct {
 
 void handle_api_request(Client* client);
 
-void handle_api_status(Client* client); 
+void handle_api_status(Client* client);
 void handle_api_info(Client* client);
 void handle_api_files(Client* client);
 void handle_api_config(Client* client);
 void handle_api_time(Client* client);
+void handle_api_logout(Client* client);
 
 void send_api_error(Client* client, int status_code, const char* error_code, const char* message);
 

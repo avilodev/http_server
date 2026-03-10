@@ -10,7 +10,7 @@
 /**
  * Creates and initializes a BST from files in the webroot directory
  *
- * Executes a system find command to locate all files in the webpages
+ * Executes a system find command to locate all files in the public
  * directory, then creates a BST node for each discovered file. Each node
  * contains the file path, path hash, content hash, and last modified time.
  *
@@ -25,7 +25,7 @@ struct Node* init_tree() {
     struct Node* head = NULL;
 
     char cmd[READSIZE];
-    snprintf(cmd, sizeof(cmd), "find %s/webpages -type f", SERVER_PATH);
+    snprintf(cmd, sizeof(cmd), "find %s/public -type f", SERVER_PATH);
 
     /* popen pipes find output directly into this process, one line at a time.
      * This avoids the intermediate results.txt file and the 4096-byte buffer
