@@ -5,7 +5,9 @@ CC = gcc
 #   make SERVER_PATH=/custom/path
 SERVER_PATH ?= $(abspath .)
 
-CFLAGS  = -Wall -Wextra -pthread -O2 -g -Isrc -DSERVER_PATH=\"$(SERVER_PATH)\"
+INC_DIR = include
+
+CFLAGS  = -Wall -Wextra -pthread -O2 -g -I$(INC_DIR) -DSERVER_PATH=\"$(SERVER_PATH)\"
 LDFLAGS = -lssl -lcrypto -lsqlite3 -lsodium
 
 # Directories
@@ -13,50 +15,50 @@ SRC_DIR = src
 OBJ_DIR = obj
 BIN_DIR = bin
 
-# Source files (just the names)
-SOURCES = main.c request.c response.c ssl_handler.c cache.c \
-          logger.c config.c utils.c node.c thread_pool.c    \
-		  hash_table.c mime.c api.c post.c
+# Source subdirectories — VPATH tells make where to search for %.c prerequisites
+VPATH = $(SRC_DIR):$(SRC_DIR)/http:$(SRC_DIR)/api:$(SRC_DIR)/net:$(SRC_DIR)/cache:$(SRC_DIR)/core
 
-# Full paths
-SRC_FILES = $(addprefix $(SRC_DIR)/, $(SOURCES))
+# Source files (basenames only — VPATH resolves actual paths at build time)
+SOURCES = main.c \
+          request.c response.c error_pages.c \
+          api.c post.c \
+          ssl_handler.c thread_pool.c \
+          cache.c node.c hash_table.c mime.c \
+          logger.c config.c utils.c session.c
+
 OBJECTS = $(addprefix $(OBJ_DIR)/, $(SOURCES:.c=.o))
+TARGET  = $(BIN_DIR)/server
+HEADERS = $(wildcard $(INC_DIR)/*.h)
 
-TARGET = $(BIN_DIR)/server
+.PHONY: all clean rebuild run debug directories
 
-# Default target
 all: directories $(TARGET)
 
-# Create necessary directories
+# Create necessary runtime and build directories
 directories:
-	@mkdir -p $(OBJ_DIR)
-	@mkdir -p $(BIN_DIR)
+	@mkdir -p $(OBJ_DIR) $(BIN_DIR) var/log var/db
 
-# Link object files into executable
+# Link
 $(TARGET): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(TARGET) $(LDFLAGS)
 	@echo "Build complete: $(TARGET)"
 
-# Compile source files to object files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+# Compile — VPATH resolves %.c to the correct subdirectory
+# Any header change triggers a full rebuild
+$(OBJ_DIR)/%.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Clean build artifacts
 clean:
 	rm -rf $(OBJ_DIR) $(BIN_DIR)
 	@echo "Clean complete"
 
-# Rebuild from scratch
 rebuild: clean all
 
-# Run the server
 run: $(TARGET)
-	sudo ./$(TARGET) -v /path/to/videos
+	sudo ./$(TARGET)
 
-# Show variables (for debugging Makefile)
 debug:
-	@echo "Sources: $(SRC_FILES)"
+	@echo "Sources: $(SOURCES)"
 	@echo "Objects: $(OBJECTS)"
-	@echo "Target: $(TARGET)"
-
-.PHONY: all clean rebuild run debug directories
+	@echo "Target:  $(TARGET)"
+	@echo "VPATH:   $(VPATH)"

@@ -12,6 +12,7 @@ int send_file_response(Client* client, struct Node* cache_node);
 int send_error_response(int status_code, Client* client);
 int send_not_modified_response(Client* client, struct Node* cache_node);
 int send_redirect_response(const char* location, Client* client);
+int send_login_redirect(const char* location, const char* token, int max_age, Client* client);
 int send_options_response(Client* client);
 
 // Status code helpers

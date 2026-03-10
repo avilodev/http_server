@@ -9,7 +9,7 @@
  * to an integer and call lookupNode with that value. Returns the Node
  * if found, NULL otherwise. 
  *
- * @param tree_head Head of the tree where the webpages are stored.
+ * @param tree_head Head of the tree where the public files are stored.
  * @param path Path where the file lies.
  *
  * @return Node that was found. If not found, the method returns NULL

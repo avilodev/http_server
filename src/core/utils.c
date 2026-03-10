@@ -1,4 +1,5 @@
 #include "utils.h"
+#include <ctype.h>
 
 /**
  * Gets the current time added to by an offset. 
@@ -22,22 +23,41 @@ char* get_time(int offset)
     return str;
 }
 
-// Parse query parameter from URL
-// Example: /api/files?path=/videos returns "/videos" for key "path"
+void url_decode(char* dst, const char* src, size_t dst_size)
+{
+    if (!dst || !src || dst_size == 0) return;
+
+    size_t out = 0;
+    for (size_t i = 0; src[i] && out < dst_size - 1; i++) {
+        if (src[i] == '+') {
+            dst[out++] = ' ';
+        } else if (src[i] == '%' && isxdigit((unsigned char)src[i+1])
+                                 && isxdigit((unsigned char)src[i+2])) {
+            char hex[3] = { src[i+1], src[i+2], '\0' };
+            dst[out++] = (char)strtol(hex, NULL, 16);
+            i += 2;
+        } else {
+            dst[out++] = src[i];
+        }
+    }
+    dst[out] = '\0';
+}
+
+// Parse query parameter from URL, URL-decoding the value before returning.
+// Example: /api/files?path=%2Fvideos returns "/videos" for key "path"
 char* get_query_param(Client* client, const char* key)
 {
     if (!client || !client->path || !key) {
         return NULL;
     }
-    
-    // Find '?' in path
+
     char* query_start = strchr(client->path, '?');
     if (!query_start) {
         return NULL;
     }
-    
-    query_start++;  // Skip the '?'
-    
+
+    query_start++;  // Skip '?'
+
     char search_key[128];
     snprintf(search_key, sizeof(search_key), "%s=", key);
 
@@ -48,17 +68,17 @@ char* get_query_param(Client* client, const char* key)
 
     param_start += strlen(search_key);
 
-    /* Heap-allocate the result so each thread gets its own copy.
-     * Caller is responsible for freeing the returned string. */
-    char* value = malloc(256);
-    if (!value) return NULL;
-
+    /* Copy raw value then URL-decode it. */
+    char raw[256];
     int i = 0;
     while (param_start[i] && param_start[i] != '&' && i < 255) {
-        value[i] = param_start[i];
+        raw[i] = param_start[i];
         i++;
     }
-    value[i] = '\0';
+    raw[i] = '\0';
 
+    char* value = malloc(256);
+    if (!value) return NULL;
+    url_decode(value, raw, 256);
     return value;
 }

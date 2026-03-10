@@ -1,4 +1,5 @@
 #include "api.h"
+#include "session.h"
 
 ApiRoute api_routes[] = {
     { "/api/status", handle_api_status },
@@ -6,6 +7,7 @@ ApiRoute api_routes[] = {
     { "/api/files",  handle_api_files },
     { "/api/config", handle_api_config },
     { "/api/time", handle_api_time },
+    { "/api/logout", handle_api_logout },
     { NULL, NULL }
 };
 
@@ -27,7 +29,14 @@ void handle_api_request(Client* client)
 
 void handle_api_status(Client* client)
 {
-    send_api_response(client, 200, "application/json", "{\"status\":\"online\",\"uptime\":102,\"version\":\"0.4\"}");
+    extern time_t g_server_start;
+    long uptime = (long)(time(NULL) - g_server_start);
+
+    char response[128];
+    snprintf(response, sizeof(response),
+        "{\"status\":\"online\",\"uptime\":%ld,\"version\":\"0.4\"}", uptime);
+
+    send_api_response(client, 200, "application/json", response);
 }
 
 void handle_api_info(Client* client) 
@@ -61,7 +70,7 @@ void handle_api_files(Client* client) {
 
     char full_path[512];
     extern ServerConfig g_config;
-    snprintf(full_path, sizeof(full_path), "%s/webpages/%s", g_config.webroot, effective_path);
+    snprintf(full_path, sizeof(full_path), "%s/public/%s", g_config.webroot, effective_path);
 
     DIR* dir = opendir(full_path);
     if (!dir) {
@@ -125,7 +134,28 @@ void handle_api_files(Client* client) {
 
 void handle_api_config(Client* client)
 {
-    send_api_response(client, 200, "application/json", "Config");
+    extern ServerConfig g_config;
+
+    char response[512];
+    snprintf(response, sizeof(response),
+        "{\n"
+        "  \"success\": true,\n"
+        "  \"data\": {\n"
+        "    \"http_port\": %d,\n"
+        "    \"https_port\": %d,\n"
+        "    \"thread_pool_size\": %d,\n"
+        "    \"max_queue_size\": %d,\n"
+        "    \"webroot\": \"%s\"\n"
+        "  }\n"
+        "}",
+        g_config.http_port,
+        g_config.https_port,
+        g_config.thread_pool_size,
+        g_config.max_queue_size,
+        g_config.webroot ? g_config.webroot : ""
+    );
+
+    send_api_response(client, 200, "application/json", response);
 }
 
 void handle_api_time(Client* client) 
@@ -150,6 +180,14 @@ void handle_api_time(Client* client)
     send_api_response(client, 200, "application/json", response);
     
     free(date);
+}
+
+void handle_api_logout(Client* client)
+{
+    if (client->session_token) {
+        session_destroy(client->session_token);
+    }
+    send_login_redirect("/login.html", "", 0, client);
 }
 
 void send_api_error(Client* client, int status_code, const char* error_code, const char* message) {

@@ -2,14 +2,14 @@
 bin/
 obj/
 
-# TLS certificates and private keys
-keys/
+# SSL certificates and private keys — never commit
+etc/ssl/
 
-# Runtime data
-server.log
-*.log
-users.db
-*.db
+# Runtime data — track directories via .gitkeep, ignore their contents
+var/log/*
+!var/log/.gitkeep
+var/db/*
+!var/db/.gitkeep
 
 # Backup artifacts
 backups/legacy/server

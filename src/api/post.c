@@ -1,7 +1,11 @@
 #include "post.h"
+#include "session.h"
+#include "utils.h"
+#include <pthread.h>
 
 // External reference to the global database connection (defined in main.c)
 extern sqlite3* g_database;
+extern pthread_mutex_t g_db_mutex;
 
 // Function to initialize the database and create users table
 int init_database(sqlite3** db)
@@ -9,7 +13,7 @@ int init_database(sqlite3** db)
     int rc;
     char* err_msg = 0;
     
-    rc = sqlite3_open("users.db", db);
+    rc = sqlite3_open(SERVER_PATH "/var/db/users.db", db);
     
     if (rc != SQLITE_OK) {
         fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(*db));
@@ -77,32 +81,27 @@ int verify_user(sqlite3* db, const char* username, const char* password)
     int result = 0;
     
     const char* sql = "SELECT password_hash FROM users WHERE username = ?;";
-    
+
+    pthread_mutex_lock(&g_db_mutex);
     rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
-    
+
     if (rc != SQLITE_OK) {
         fprintf(stderr, "Failed to prepare statement: %s\n", sqlite3_errmsg(db));
+        pthread_mutex_unlock(&g_db_mutex);
         return 0;
     }
-    
+
     sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
-    
+
     rc = sqlite3_step(stmt);
-    
+
     if (rc == SQLITE_ROW) {
         const unsigned char* stored_hash = sqlite3_column_text(stmt, 0);
         result = verify_password((const char*)stored_hash, password);
-        
-        if (result) {
-            //printf("Password verified for user: %s\n", username);
-        } else {
-            //printf("Invalid password for user: %s\n", username);
-        }
-    } else {
-        //printf("User not found: %s\n", username);
     }
-    
+
     sqlite3_finalize(stmt);
+    pthread_mutex_unlock(&g_db_mutex);
     return result;
 }
 
@@ -124,20 +123,23 @@ int add_user(sqlite3* db, const char* username, const char* password)
     //printf("(Notice the hash includes salt and algorithm parameters)\n");
     
     const char* sql = "INSERT INTO users(username, password_hash) VALUES(?, ?);";
-    
+
+    pthread_mutex_lock(&g_db_mutex);
     rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
-    
+
     if (rc != SQLITE_OK) {
         fprintf(stderr, "Failed to prepare statement: %s\n", sqlite3_errmsg(db));
+        pthread_mutex_unlock(&g_db_mutex);
         return rc;
     }
-    
+
     sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 2, hashed_password, -1, SQLITE_STATIC);
-    
+
     rc = sqlite3_step(stmt);
-    
+
     sqlite3_finalize(stmt);
+    pthread_mutex_unlock(&g_db_mutex);
     
     if (rc != SQLITE_DONE) {
         if (rc == SQLITE_CONSTRAINT) {
@@ -154,10 +156,18 @@ int add_user(sqlite3* db, const char* username, const char* password)
 
 void handle_post(Client* client)
 {
-    if(client->post_type)
-    {
-        if(strncmp(client->post_type, "application/x-www-form-urlencoded", 33) == 0)
-        {
+    /* Reject missing or oversized bodies before touching any content. */
+    if (client->content_length < 0) {
+        send_error_response(411, client);  /* 411 Length Required */
+        return;
+    }
+    if (client->content_length > MAX_BODY_SIZE) {
+        send_error_response(413, client);  /* 413 Content Too Large */
+        return;
+    }
+
+    if (client->post_type) {
+        if (strncmp(client->post_type, "application/x-www-form-urlencoded", 33) == 0) {
             handle_post_form_urlencoded(client);
         }
     }
@@ -273,11 +283,15 @@ void handle_login(sqlite3* db, Client* client)
     }
     
     if (verify_user(db, creds->username, creds->password)) {
-        //printf("✓ Login successful for user: %s\n", creds->username);
-
         log_message(LOG_INFO, "Successful user login: %s", creds->username);
 
-        send_redirect_response("/landing.html", client);
+        char* token = session_create(creds->username);
+        if (token) {
+            send_login_redirect("/landing.html", token, SESSION_EXPIRY_SEC, client);
+            free(token);
+        } else {
+            send_error_response(500, client);
+        }
     } else {
         log_message(LOG_INFO, "Failed user login: %s", creds->username);
 
@@ -298,25 +312,20 @@ url_encoded* parse_url_encoded(Client* client)
     creds->username = NULL;
     creds->password = NULL;
 
-    // Find username
+    /* Extract and URL-decode username */
     char* user_start = strstr(client->body, "username=");
-    if (!user_start) {
-        free(creds);
-        return NULL;
-    }
+    if (!user_start) { free(creds); return NULL; }
     user_start += 9;
-    
+
     char* user_end = strchr(user_start, '&');
-    if (user_end) {
-        int user_len = user_end - user_start;
-        creds->username = malloc(user_len + 1);
-        strncpy(creds->username, user_start, user_len);
-        creds->username[user_len] = '\0';
-    } else {
-        creds->username = strdup(user_start);
-    }
-    
-    // Find password
+    size_t user_raw_len = user_end ? (size_t)(user_end - user_start) : strlen(user_start);
+    char* user_raw = strndup(user_start, user_raw_len);
+    if (!user_raw) { free(creds); return NULL; }
+    creds->username = malloc(user_raw_len + 1);
+    if (creds->username) url_decode(creds->username, user_raw, user_raw_len + 1);
+    free(user_raw);
+
+    /* Extract and URL-decode password */
     char* pass_start = strstr(client->body, "password=");
     if (!pass_start) {
         free(creds->username);
@@ -324,17 +333,14 @@ url_encoded* parse_url_encoded(Client* client)
         return NULL;
     }
     pass_start += 9;
-    
-    char* pass_end = strchr(pass_start, '&');
-    if (pass_end) {
-        int pass_len = pass_end - pass_start;
-        creds->password = malloc(pass_len + 1);
-        strncpy(creds->password, pass_start, pass_len);
-        creds->password[pass_len] = '\0';
-    } else {
-        creds->password = strdup(pass_start);
-    }
 
-    //printf("Username: %s, Password: [REDACTED]\n", creds->username);
+    char* pass_end = strchr(pass_start, '&');
+    size_t pass_raw_len = pass_end ? (size_t)(pass_end - pass_start) : strlen(pass_start);
+    char* pass_raw = strndup(pass_start, pass_raw_len);
+    if (!pass_raw) { free(creds->username); free(creds); return NULL; }
+    creds->password = malloc(pass_raw_len + 1);
+    if (creds->password) url_decode(creds->password, pass_raw, pass_raw_len + 1);
+    free(pass_raw);
+
     return creds;
 }
