@@ -23,3 +23,9 @@ backups/legacy/server
 # OS
 .DS_Store
 Thumbs.db
+# Local backups, compiled classes, runtime data
+backups/
+*.class
+*.db
+*.log
+*.mp4
