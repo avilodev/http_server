@@ -19,11 +19,13 @@
  *
  * @see lookupNode(), cache_hash_path()
  */
-struct Node* cache_lookup(struct Node* tree_head, const char* path) {
-    if (!tree_head || !path) return NULL;
-    
-    unsigned int hash = cache_hash_path(path);
-    return lookupNode(tree_head, hash);
+struct node_t* cache_lookup(struct node_t* tree_head, const char* path) {
+	if(!tree_head || !path)
+		return NULL;
+
+	unsigned int hash = cache_hash_path(path);
+
+	return lookup_node(tree_head, hash);
 }
 
 /**
@@ -34,9 +36,10 @@ struct Node* cache_lookup(struct Node* tree_head, const char* path) {
  * @return Hash value for the path
  */
 unsigned int cache_hash_path(const char* path) {
-    if(!path) return 0;
+	if(!path)
+		return 0;
 
-    return hashPath(path);
+	return hash_path(path);
 }
 
 /**
@@ -46,9 +49,9 @@ unsigned int cache_hash_path(const char* path) {
  *
  * @return Head of the new tree contructed.
  */
-struct Node* cache_tree_init(const char* root_dir) {
-    log_message(LOG_INFO, "Initializing cache tree for: %s", root_dir);
-    return init_tree();
+struct node_t* cache_tree_init(const char* root_dir) {
+	log_message(LOG_INFO, "Initializing cache tree for: %s", root_dir);
+	return init_tree();
 }
 
 /**
@@ -56,10 +59,9 @@ struct Node* cache_tree_init(const char* root_dir) {
  *
  * @param tree_head Tree head of the BST.
  */
-void cache_tree_free(struct Node* tree_head) {
-    if (tree_head) {
-        free_tree(tree_head);
-    }
+void cache_tree_free(struct node_t* tree_head) {
+	if(tree_head)
+		free_tree(tree_head);
 }
 
 /**
@@ -68,10 +70,11 @@ void cache_tree_free(struct Node* tree_head) {
  * @param tree_head Tree head of the BST.
  * @param tree_head root directory of all files returned by the server.
  */
-void cache_tree_refresh(struct Node** tree_head, const char* root_dir) {
-    if (!tree_head) return;
-    
-    log_message(LOG_INFO, "Refreshing cache tree");
-    cache_tree_free(*tree_head);
-    *tree_head = cache_tree_init(root_dir);
+void cache_tree_refresh(struct node_t** tree_head, const char* root_dir) {
+	if(!tree_head)
+		return;
+
+	log_message(LOG_INFO, "Refreshing cache tree");
+	cache_tree_free(*tree_head);
+	*tree_head = cache_tree_init(root_dir);
 }

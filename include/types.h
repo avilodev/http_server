@@ -10,89 +10,89 @@
 #define HTTP_PORT 80
 #define HTTPS_PORT 443
 #define BACKLOG 20
-/* SERVER_PATH is injected at compile time via -DSERVER_PATH=... in the Makefile */
+// SERVER_PATH is injected at compile time via -DSERVER_PATH=... in the Makefile
 #ifndef SERVER_PATH
 #error "SERVER_PATH must be defined by the build system (see Makefile)"
 #endif
 #define SERVER_VERSION "Snap/0.4"
 #define MAX_REQUEST_SIZE  8192
-#define MAX_BODY_SIZE     65536   /* 64 KB — reject POST bodies larger than this */
+#define MAX_BODY_SIZE     65536   // 64 KB — reject POST bodies larger than this
 #define MAX_RESPONSE_SIZE 262144
 #define SMALL_ALLOCATE 256
 #define LARGE_ALLOCATE 16384
 
 // Forward declarations
-struct Node;
+struct node_t;
 
 // Client request structure
-typedef struct Client {
-    // Connection info
-    char* client_ip;
-    int client_port;
-    int client_fd;
-    
-    // File handling
-    int fd;                  // File descriptor for requested file
-    char* full_path;         // Full path to file
-    
-    // HTTP request line
-    char* method;            // GET, HEAD, POST, etc.
-    char* path;              // Requested path
-    char* version;           // HTTP/1.0 or HTTP/1.1
-    
-    // HTTP headers
-    char* host;
-    char* user_agent;
-    char* referer;
-    char* accept;
-    char* encoding;
-    char* language;
-    char* priority;
-    char* modified_since;    // If-Modified-Since
-    
-    // Caching
-    unsigned int tag;        // ETag value
-    
-    // Connection management
-    int connection_status;   // 0=close, 1=keep-alive
-    
-    // Range requests
-    int range;               // 0=no range, 1=range request
-    off_t start_range;
-    off_t end_range;
-    
-    // Privacy flags
-    int DNT;                 // Do Not Track
-    int GPC;                 // Global Privacy Control
-    int upgrade_tls;         // Upgrade-Insecure-Requests
+typedef struct client_t {
+	// Connection info
+	char* client_ip;
+	int client_port;
+	int client_fd;
+	
+	// File handling
+	int fd;                  // File descriptor for requested file
+	char* full_path;         // Full path to file
+	
+	// HTTP request line
+	char* method;            // GET, HEAD, POST, etc.
+	char* path;              // Requested path
+	char* version;           // HTTP/1.0 or HTTP/1.1
+	
+	// HTTP headers
+	char* host;
+	char* user_agent;
+	char* referer;
+	char* accept;
+	char* encoding;
+	char* language;
+	char* priority;
+	char* modified_since;    // If-Modified-Since
+	
+	// Caching
+	unsigned int tag;        // ETag value
+	
+	// Connection management
+	int connection_status;   // 0=close, 1=keep-alive
+	
+	// Range requests
+	int range;               // 0=no range, 1=range request
+	off_t start_range;
+	off_t end_range;
+	
+	// Privacy flags
+	int DNT;                 // Do Not Track
+	int GPC;                 // Global Privacy Control
+	int upgrade_tls;         // Upgrade-Insecure-Requests
 
-    char* post_type;         // Content Type of POST headers only
-    char* body;              // Body of Client Request
-    long  content_length;    // Value of Content-Length header (-1 = not set)
-    char* session_token;     // Value of "session" cookie (if present)
+	char* post_type;         // Content Type of POST headers only
+	char* body;              // Body of Client Request
+	long  content_length;    // Value of Content-Length header (-1 = not set)
+	char* session_token;     // Value of "session" cookie (if present)
 
-    // SSL
-    int is_ssl;
-    SSL* ssl;
-} Client;
+	// SSL
+	int is_ssl;
+	SSL* ssl;
+} client_t;
 
 // Thread arguments for worker threads
-typedef struct ThreadArgs {
-    int client_fd;
-    SSL* ssl;
-    char client_ip[INET6_ADDRSTRLEN];  // resolved at accept() for both IPv4 and IPv6
-    int  client_port;
-} ThreadArgs;
+typedef struct thread_args {
+	int client_fd;
+	SSL* ssl;
+	char client_ip[INET6_ADDRSTRLEN];  // resolved at accept() for both IPv4 and IPv6
+	int  client_port;
+} thread_args;
 
 // Server configuration
-typedef struct ServerConfig {
-    char* webroot;
-    int http_port;
-    int https_port;
-    char* cert_path;
-    char* key_path;
-    int thread_pool_size;
-    int max_queue_size;
-} ServerConfig;
+typedef struct server_config {
+	char* webroot;
+	int http_port;
+	int https_port;
+	char* cert_path;
+	char* key_path;
+	int thread_pool_size;
+	int max_queue_size;
+} server_config;
 
-#endif // TYPES_H
+#endif /* TYPES_H */

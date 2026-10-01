@@ -9,7 +9,7 @@
 #include "types.h"
 
 char* get_time(int offset);
-char* get_query_param(Client* client, const char* key);
+char* get_query_param(client_t* client, const char* key);
 
 /**
  * Decodes a percent-encoded URL string in-place.
@@ -22,4 +22,4 @@ char* get_query_param(Client* client, const char* key);
  */
 void url_decode(char* dst, const char* src, size_t dst_size);
 
-#endif 
+#endif /* UTILS_H */

@@ -12,4 +12,4 @@ SSL_CTX* create_ssl_context(void);
 void configure_ssl_context(SSL_CTX *ctx);
 SSL* accept_ssl_connection(SSL_CTX* ctx, int client_fd);
 
-#endif
+#endif /* SSL_HANDLER_H */

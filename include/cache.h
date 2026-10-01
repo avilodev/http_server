@@ -5,12 +5,12 @@
 #include "node.h"
 
 // Cache operations
-struct Node* cache_lookup(struct Node* tree_head, const char* path);
+struct node_t* cache_lookup(struct node_t* tree_head, const char* path);
 unsigned int cache_hash_path(const char* path);
 
 // Cache tree management
-struct Node* cache_tree_init(const char* root_dir);
-void cache_tree_free(struct Node* tree_head);
-void cache_tree_refresh(struct Node** tree_head, const char* root_dir);
+struct node_t* cache_tree_init(const char* root_dir);
+void cache_tree_free(struct node_t* tree_head);
+void cache_tree_refresh(struct node_t** tree_head, const char* root_dir);
 
-#endif
+#endif /* CACHE_H */

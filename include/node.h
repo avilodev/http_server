@@ -5,27 +5,26 @@
 
 #define READSIZE 4096
 
-
-struct Node {
-    char* path;
+struct node_t {
+	char* path;
  
-    unsigned int path_hash;
-    unsigned int file_hash;
+	unsigned int path_hash;
+	unsigned int file_hash;
 
-    char* last_modified;
+	char* last_modified;
 
-    struct Node* left;
-    struct Node* right;
+	struct node_t* left;
+	struct node_t* right;
 };
 
-struct Node* init_tree();
-struct Node* add_node(struct Node*, char*);
-int hashFile(char* filename);
-int hashPath(const char* filename);
+struct node_t* init_tree();
+struct node_t* add_node(struct node_t*, char*);
+int hash_file(char* filename);
+int hash_path(const char* filename);
 char* update_last_modified(char*);
-int insert_node(struct Node*, struct Node*);
-struct Node* lookupNode(struct Node*, unsigned int);
-void printTree(struct Node*, int);
-void free_tree(struct Node*);
+int insert_node(struct node_t*, struct node_t*);
+struct node_t* lookup_node(struct node_t*, unsigned int);
+void print_tree(struct node_t*, int);
+void free_tree(struct node_t*);
 
-#endif  
+#endif /* NODE_H */

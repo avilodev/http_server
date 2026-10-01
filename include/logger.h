@@ -11,14 +11,14 @@
 #include <sys/file.h>
 
 typedef enum {
-    LOG_DEBUG,
-    LOG_INFO,
-    LOG_WARN,
-    LOG_ERROR
-} LogLevel;
+	LOG_DEBUG,
+	LOG_INFO,
+	LOG_WARN,
+	LOG_ERROR
+} log_level;
 
 void log_init(const char* log_file);
-void log_message(LogLevel level, const char* format, ...);
+void log_message(log_level level, const char* format, ...);
 void log_close(void);
 
-#endif
+#endif /* LOGGER_H */

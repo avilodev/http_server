@@ -15,29 +15,33 @@
 #define MAX_HEADER_SIZE 8192
 #define BUFFER_SIZE 65536
 
-/* Send all bytes, retrying on partial writes. Returns 0 on success, -1 on error. */
-static int send_all(Client* client, const void* buf, size_t len)
+// Send all bytes, retrying on partial writes.
+static int send_all(client_t* client, const void* buf, size_t len)
 {
-    const char* p = (const char*)buf;
-    while (len > 0) {
-        ssize_t n;
-        if (client->is_ssl) {
-            n = SSL_write(client->ssl, p, (int)len);
-            if (n <= 0) {
-                log_message(LOG_WARN, "SSL_write failed: %d", SSL_get_error(client->ssl, (int)n));
-                return -1;
-            }
-        } else {
-            n = send(client->client_fd, p, len, MSG_NOSIGNAL);
-            if (n < 0) {
-                log_message(LOG_WARN, "send() failed: %s", strerror(errno));
-                return -1;
-            }
-        }
-        p   += n;
-        len -= (size_t)n;
-    }
-    return 0;
+	const char* p = (const char*)buf;
+
+	while(len > 0) {
+		ssize_t n;
+
+		if(client->is_ssl) {
+			n = SSL_write(client->ssl, p, (int)len);
+			if(n <= 0) {
+				log_message(LOG_WARN, "SSL_write failed: %d", SSL_get_error(client->ssl, (int)n));
+				return -1;
+			}
+		} else {
+			n = send(client->client_fd, p, len, MSG_NOSIGNAL);
+			if(n < 0) {
+				log_message(LOG_WARN, "send() failed: %s", strerror(errno));
+				return -1;
+			}
+		}
+
+		p   += n;
+		len -= (size_t)n;
+	}
+
+	return 0;
 }
 
 /**
@@ -62,195 +66,193 @@ static int send_all(Client* client, const void* buf, size_t len)
  *
  * @see send_error_response(), mime_get_type_from_filename()
  */
-int send_file_response(Client* client, struct Node* cache_node) {
-    if (!client) {
-        log_message(LOG_ERROR, "Invalid client");
-        return -1;
-    }
+int send_file_response(client_t* client, struct node_t* cache_node) {
+	if(!client) {
+		log_message(LOG_ERROR, "Invalid client");
+		return -1;
+	}
 
-    // Get file metadata — fstat when fd is open (GET), stat for HEAD
-    struct stat st;
-    if (client->fd >= 0) {
-        if (fstat(client->fd, &st) < 0) {
-            log_message(LOG_ERROR, "fstat failed: %s", strerror(errno));
-            send_error_response(500, client);
-            return -1;
-        }
-    } else {
-        // HEAD request: fd intentionally not opened
-        if (stat(client->full_path, &st) < 0) {
-            log_message(LOG_ERROR, "stat failed: %s", strerror(errno));
-            send_error_response(500, client);
-            return -1;
-        }
-    }
-    
-    off_t file_size = st.st_size;
-    off_t start = 0;
-    off_t end = file_size - 1;
-    int is_partial = 0;
-    
-    // Handle range requests
-    if (client->range) {
-        is_partial = 1;
-        
-        // Handle suffix range (last N bytes)
-        if (client->start_range < 0) {
-            off_t suffix_len = -client->start_range;
-            start = (file_size > suffix_len) ? (file_size - suffix_len) : 0;
-            end = file_size - 1;
-        } else {
-            start = client->start_range;
-            
-            /* end_range == -1 is the sentinel for "to EOF"; any value >= 0 is a
-             * client-specified end byte, including 0 for a bytes=0-0 request. */
-            if (client->end_range >= 0 && client->end_range < file_size) {
-                end = client->end_range;
-            } else {
-                end = file_size - 1;
-            }
-        }
-        
-        // Validate range
-        if (start >= file_size || start < 0 || end < start) {
-            log_message(LOG_WARN, "Invalid range: %ld-%ld for file size %ld", 
-                       start, end, file_size);
-            send_error_response(416, client);
-            return -1;
-        }
-    }
-    
-    off_t content_length = end - start + 1;
-    
-    // Build response headers
-    char headers[MAX_HEADER_SIZE];
-    int header_len = 0;
-    
-    // Status line
-    if (is_partial) {
-        header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                              "%s 206 Partial Content\r\n", client->version);
-    } else {
-        header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                              "%s 200 OK\r\n", client->version);
-    }
-    
-    extern ht* mime_table;
+	// Get file metadata — fstat when fd is open (GET), stat for HEAD
+	struct stat st;
 
-    // Headers
-    const char* content_type = mime_get_type_from_filename(mime_table, client->full_path);
-    char* current_date = get_current_http_date();
-    
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Content-Type: %s\r\n", content_type);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Content-Length: %ld\r\n", content_length);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Accept-Ranges: bytes\r\n");
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Date: %s\r\n", current_date);
-    
-    // Cache headers
-    if (cache_node && !client->is_ssl) {
-        header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                              "ETag: \"%u\"\r\n", cache_node->file_hash);
-    }
-    
-    if (cache_node && cache_node->last_modified) {
-        header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                              "Last-Modified: %s\r\n", cache_node->last_modified);
-    }
-    
-    // Range header
-    if (is_partial) {
-        header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                              "Content-Range: bytes %ld-%ld/%ld\r\n", 
-                              start, end, file_size);
-    }
-    
-    //Server 
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                        "Server: %s\r\n", SERVER_VERSION);
+	if(client->fd >= 0) {
+		if(fstat(client->fd, &st) < 0) {
+			log_message(LOG_ERROR, "fstat failed: %s", strerror(errno));
+			send_error_response(500, client);
+			return -1;
+		}
+	} else {
+		// HEAD request: fd intentionally not opened
+		if(stat(client->full_path, &st) < 0) {
+			log_message(LOG_ERROR, "stat failed: %s", strerror(errno));
+			send_error_response(500, client);
+			return -1;
+		}
+	}
 
-    // Connection header
-    if (client->connection_status) {
-        header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                              "Connection: keep-alive\r\n");
-    } else {
-        header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                              "Connection: close\r\n");
-    }
-    
-    // End headers
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
-    
-    free(current_date);
-    
-    // Send headers
-    if (send_all(client, headers, header_len) < 0) {
-        log_message(LOG_ERROR, "Failed to send headers");
-        return -1;
-    }
-    
-    // For HEAD requests, stop here
-    if (strcmp(client->method, "HEAD") == 0) {
-        log_message(LOG_INFO, "HEAD request - headers only");
-        return 0;
-    }
-    
-    // Send file content
-    if (lseek(client->fd, start, SEEK_SET) < 0) {
-        log_message(LOG_ERROR, "lseek failed: %s", strerror(errno));
-        return -1;
-    }
-    
-    char buffer[BUFFER_SIZE];
-    off_t remaining = content_length;
-    off_t total_sent = 0;
-    
-    while (remaining > 0) {
-        int size_to_read = (remaining > BUFFER_SIZE) ? BUFFER_SIZE : remaining;
-        
-        ssize_t bytes_read = read(client->fd, buffer, size_to_read);
-        if (bytes_read <= 0) {
-            if (bytes_read < 0 && errno == EINTR) continue;
-            break;
-        }
-        
-        /* Inner loop: send all bytes_read bytes before the next read().
-         * Without this, a short write advances the file fd past unsent bytes,
-         * causing a gap in the response. EINTR is retried; EPIPE/ECONNRESET
-         * indicate a client disconnect, which is normal for video seeking. */
-        ssize_t write_offset = 0;
-        while (write_offset < bytes_read) {
-            ssize_t bytes_sent;
-            if (client->is_ssl) {
-                bytes_sent = SSL_write(client->ssl, buffer + write_offset, bytes_read - write_offset);
-            } else {
-                bytes_sent = send(client->client_fd, buffer + write_offset, bytes_read - write_offset, 0);
-            }
+	off_t file_size = st.st_size;
+	off_t start = 0;
+	off_t end = file_size - 1;
+	int is_partial = 0;
 
-            if (bytes_sent <= 0) {
-                if (errno == EINTR) continue;
-                if (errno == ECONNRESET || errno == EPIPE) {
-                    log_message(LOG_INFO, "Client disconnected (sent %ld/%ld bytes)",
-                               total_sent, content_length);
-                    return 0;
-                }
-                log_message(LOG_ERROR, "Send failed: %s", strerror(errno));
-                return -1;
-            }
-            write_offset += bytes_sent;
-        }
+	// Handle range requests
+	if(client->range) {
+		is_partial = 1;
 
-        remaining -= bytes_read;
-        total_sent += bytes_read;
-    }
-    
-    log_message(LOG_INFO, "Sent %ld bytes (status %d)", 
-               total_sent, is_partial ? 206 : 200);
-    
-    return 0;
+		// Handle suffix range (last N bytes)
+		if(client->start_range < 0) {
+			off_t suffix_len = -client->start_range;
+			start = (file_size > suffix_len) ? (file_size - suffix_len) : 0;
+			end = file_size - 1;
+		} else {
+			start = client->start_range;
+
+			// end_range == -1 is the sentinel for "to EOF"
+			if(client->end_range >= 0 && client->end_range < file_size)
+				end = client->end_range;
+			else
+				end = file_size - 1;
+		}
+
+		// Validate range
+		if(start >= file_size || start < 0 || end < start) {
+			log_message(LOG_WARN, "Invalid range: %ld-%ld for file size %ld", 
+					   start, end, file_size);
+			send_error_response(416, client);
+			return -1;
+		}
+	}
+
+	off_t content_length = end - start + 1;
+
+	// Build response headers
+	char headers[MAX_HEADER_SIZE];
+	int header_len = 0;
+
+	// Status line
+	if(is_partial) {
+		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+							  "%s 206 Partial Content\r\n", client->version);
+	} else {
+		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+							  "%s 200 OK\r\n", client->version);
+	}
+
+	extern ht* mime_table;
+
+	// Headers
+	const char* content_type = mime_get_type_from_filename(mime_table, client->full_path);
+	char* current_date = get_current_http_date();
+
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Content-Type: %s\r\n", content_type);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Content-Length: %ld\r\n", content_length);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Accept-Ranges: bytes\r\n");
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Date: %s\r\n", current_date);
+
+	// Cache headers
+	if(cache_node && !client->is_ssl) {
+		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+							  "ETag: \"%u\"\r\n", cache_node->file_hash);
+	}
+
+	if(cache_node && cache_node->last_modified) {
+		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+							  "Last-Modified: %s\r\n", cache_node->last_modified);
+	}
+
+	// Range header
+	if(is_partial) {
+		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+							  "Content-Range: bytes %ld-%ld/%ld\r\n", 
+							  start, end, file_size);
+	}
+
+	//Server 
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						"Server: %s\r\n", SERVER_VERSION);
+
+	// Connection header
+	if(client->connection_status) {
+		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+							  "Connection: keep-alive\r\n");
+	} else {
+		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+							  "Connection: close\r\n");
+	}
+
+	// End headers
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
+
+	free(current_date);
+
+	// Send headers
+	if(send_all(client, headers, header_len) < 0) {
+		log_message(LOG_ERROR, "Failed to send headers");
+		return -1;
+	}
+
+	// For HEAD requests, stop here
+	if(strcmp(client->method, "HEAD") == 0) {
+		log_message(LOG_INFO, "HEAD request - headers only");
+		return 0;
+	}
+
+	// Send file content
+	if(lseek(client->fd, start, SEEK_SET) < 0) {
+		log_message(LOG_ERROR, "lseek failed: %s", strerror(errno));
+		return -1;
+	}
+
+	char buffer[BUFFER_SIZE];
+	off_t remaining = content_length;
+	off_t total_sent = 0;
+
+	while(remaining > 0) {
+		int size_to_read = (remaining > BUFFER_SIZE) ? BUFFER_SIZE : remaining;
+
+		ssize_t bytes_read = read(client->fd, buffer, size_to_read);
+		if(bytes_read <= 0) {
+			if(bytes_read < 0 && errno == EINTR)
+				continue;
+			break;
+		}
+
+		// Inner loop: send all bytes_read bytes before the next read().
+		ssize_t write_offset = 0;
+		while(write_offset < bytes_read) {
+			ssize_t bytes_sent;
+			if(client->is_ssl)
+				bytes_sent = SSL_write(client->ssl, buffer + write_offset, bytes_read - write_offset);
+			else
+				bytes_sent = send(client->client_fd, buffer + write_offset, bytes_read - write_offset, 0);
+
+			if(bytes_sent <= 0) {
+				if(errno == EINTR)
+					continue;
+				if(errno == ECONNRESET || errno == EPIPE) {
+					log_message(LOG_INFO, "Client disconnected (sent %ld/%ld bytes)",
+							   total_sent, content_length);
+					return 0;
+				}
+				log_message(LOG_ERROR, "Send failed: %s", strerror(errno));
+				return -1;
+			}
+
+			write_offset += bytes_sent;
+		}
+
+		remaining -= bytes_read;
+		total_sent += bytes_read;
+	}
+
+	log_message(LOG_INFO, "Sent %ld bytes (status %d)", 
+			   total_sent, is_partial ? 206 : 200);
+
+	return 0;
 }
 
 /**
@@ -272,51 +274,52 @@ int send_file_response(Client* client, struct Node* cache_node) {
  *
  * @see get_status_message(), send_file_response()
  */
-int send_error_response(int status_code, Client* client) {
-    if (!client) return -1;
+int send_error_response(int status_code, client_t* client) {
+	if(!client)
+		return -1;
 
-    const char* status_msg = get_status_message(status_code);
-    char* current_date = get_current_http_date();
+	const char* status_msg = get_status_message(status_code);
+	char* current_date = get_current_http_date();
 
-    /* Use the custom HTML page if one was loaded for this code. */
-    size_t      body_len;
-    const char* body;
-    char        fallback[512];
+	// Use the custom HTML page if one was loaded for this code.
+	size_t      body_len;
+	const char* body;
+	char        fallback[512];
 
-    body = error_pages_get(status_code, &body_len);
-    if (!body) {
-        body_len = (size_t)snprintf(fallback, sizeof(fallback),
-            "<html><head><title>%d %s</title></head>"
-            "<body><h1>%d %s</h1><hr><p>Snap/0.4</p></body></html>\n",
-            status_code, status_msg, status_code, status_msg);
-        body = fallback;
-    }
+	body = error_pages_get(status_code, &body_len);
+	if(!body) {
+		body_len = (size_t)snprintf(fallback, sizeof(fallback),
+			"<html><head><title>%d %s</title></head>"
+			"<body><h1>%d %s</h1><hr><p>Snap/0.4</p></body></html>\n",
+			status_code, status_msg, status_code, status_msg);
+		body = fallback;
+	}
 
-    char headers[MAX_HEADER_SIZE];
-    int  header_len = 0;
+	char headers[MAX_HEADER_SIZE];
+	int  header_len = 0;
 
-    const char* version = client->version ? client->version : "HTTP/1.1";
+	const char* version = client->version ? client->version : "HTTP/1.1";
 
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                           "%s %d %s\r\n", version, status_code, status_msg);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                           "Content-Type: text/html\r\n");
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                           "Content-Length: %zu\r\n", body_len);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                           "Date: %s\r\n", current_date);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                           "Connection: close\r\n");
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						   "%s %d %s\r\n", version, status_code, status_msg);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						   "Content-Type: text/html\r\n");
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						   "Content-Length: %zu\r\n", body_len);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						   "Date: %s\r\n", current_date);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						   "Connection: close\r\n");
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
 
-    free(current_date);
+	free(current_date);
 
-    send_all(client, headers, header_len);
-    send_all(client, body, body_len);
+	send_all(client, headers, header_len);
+	send_all(client, body, body_len);
 
-    log_message(LOG_INFO, "Sent error %d to client", status_code);
+	log_message(LOG_INFO, "Sent error %d to client", status_code);
 
-    return 0;
+	return 0;
 }
 
 /**
@@ -337,36 +340,36 @@ int send_error_response(int status_code, Client* client) {
  *
  * @see send_file_response()
  */
-int send_not_modified_response(Client* client, struct Node* cache_node) {
-    char headers[MAX_HEADER_SIZE];
-    int header_len = 0;
-    
-    char* current_date = get_current_http_date();
-    
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "%s 304 Not Modified\r\n", client->version);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Date: %s\r\n", current_date);
-    
-    if (cache_node && !client->is_ssl) {
-        header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                              "ETag: \"%u\"\r\n", cache_node->file_hash);
-    }
-    
-    if (cache_node && cache_node->last_modified) {
-        header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                              "Last-Modified: %s\r\n", cache_node->last_modified);
-    }
-    
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
-    
-    free(current_date);
-    
-    send_all(client, headers, header_len);
+int send_not_modified_response(client_t* client, struct node_t* cache_node) {
+	char headers[MAX_HEADER_SIZE];
+	int header_len = 0;
 
-    log_message(LOG_INFO, "Sent 304 Not Modified");
-    
-    return 0;
+	char* current_date = get_current_http_date();
+
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "%s 304 Not Modified\r\n", client->version);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Date: %s\r\n", current_date);
+
+	if(cache_node && !client->is_ssl) {
+		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+							  "ETag: \"%u\"\r\n", cache_node->file_hash);
+	}
+
+	if(cache_node && cache_node->last_modified) {
+		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+							  "Last-Modified: %s\r\n", cache_node->last_modified);
+	}
+
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
+
+	free(current_date);
+
+	send_all(client, headers, header_len);
+
+	log_message(LOG_INFO, "Sent 304 Not Modified");
+
+	return 0;
 }
 
 /**
@@ -383,21 +386,21 @@ int send_not_modified_response(Client* client, struct Node* cache_node) {
  * @note Includes RFC 2324 status 418 "I'm a teapot"
  */
 const char* get_status_message(int code) {
-    switch (code) {
-        case 200: return "OK";
-        case 206: return "Partial Content";
-        case 301: return "Moved Permanently";
-        case 304: return "Not Modified";
-        case 400: return "Bad Request";
-        case 403: return "Forbidden";
-        case 404: return "Not Found";
-        case 416: return "Range Not Satisfiable";
-        case 418: return "I'm a teapot";
-        case 500: return "Internal Server Error";
-        case 501: return "Not Implemented";
-        case 505: return "HTTP Version Not Supported";
-        default: return "Unknown";
-    }
+	switch (code) {
+	case 200: return "OK";
+	case 206: return "Partial Content";
+	case 301: return "Moved Permanently";
+	case 304: return "Not Modified";
+	case 400: return "Bad Request";
+	case 403: return "Forbidden";
+	case 404: return "Not Found";
+	case 416: return "Range Not Satisfiable";
+	case 418: return "I'm a teapot";
+	case 500: return "Internal Server Error";
+	case 501: return "Not Implemented";
+	case 505: return "HTTP Version Not Supported";
+	default: return "Unknown";
+	}
 }
 
 /**
@@ -416,13 +419,14 @@ const char* get_status_message(int code) {
  * @see get_current_http_date()
  */
 char* format_http_date(time_t timestamp) {
-    char buffer[64];
-    struct tm tm_info;
-    /* gmtime_r writes into a caller-supplied struct rather than a shared static,
-     * making it safe to call concurrently from multiple threads. */
-    gmtime_r(&timestamp, &tm_info);
-    strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", &tm_info);
-    return strdup(buffer);
+	char buffer[64];
+	struct tm tm_info;
+
+	// gmtime_r writes into a caller-supplied struct rather than a shared static
+	gmtime_r(&timestamp, &tm_info);
+	strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", &tm_info);
+
+	return strdup(buffer);
 }
 
 /**
@@ -438,7 +442,7 @@ char* format_http_date(time_t timestamp) {
  * @see format_http_date()
  */
 char* get_current_http_date(void) {
-    return format_http_date(time(NULL));
+	return format_http_date(time(NULL));
 }
 
 /**
@@ -458,29 +462,31 @@ char* get_current_http_date(void) {
  *
  * @see send_error_response()
  */
-int send_redirect_response(const char* location, Client* client) {
-    if (!client || !location) return -1;
-    
-    char headers[MAX_HEADER_SIZE];
-    int header_len = 0;
-    char* current_date = get_current_http_date();
-    
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "%s 301 Moved Permanently\r\n", client->version);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Location: %s\r\n", location);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Date: %s\r\n", current_date);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Connection: close\r\n");
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
-    
-    free(current_date);
-    
-    send_all(client, headers, header_len);
+int send_redirect_response(const char* location, client_t* client) {
+	if(!client || !location)
+		return -1;
 
-    log_message(LOG_INFO, "Sent 301 redirect to %s", location);
-    return 0;
+	char headers[MAX_HEADER_SIZE];
+	int header_len = 0;
+	char* current_date = get_current_http_date();
+
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "%s 301 Moved Permanently\r\n", client->version);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Location: %s\r\n", location);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Date: %s\r\n", current_date);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Connection: close\r\n");
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
+
+	free(current_date);
+
+	send_all(client, headers, header_len);
+
+	log_message(LOG_INFO, "Sent 301 redirect to %s", location);
+
+	return 0;
 }
 
 /**
@@ -492,32 +498,34 @@ int send_redirect_response(const char* location, Client* client) {
  * @param max_age  Cookie Max-Age in seconds
  * @param client   Client connection info
  */
-int send_login_redirect(const char* location, const char* token, int max_age, Client* client) {
-    if (!client || !location || !token) return -1;
+int send_login_redirect(const char* location, const char* token, int max_age, client_t* client) {
+	if(!client || !location || !token)
+		return -1;
 
-    char headers[MAX_HEADER_SIZE];
-    int header_len = 0;
-    char* current_date = get_current_http_date();
+	char headers[MAX_HEADER_SIZE];
+	int header_len = 0;
+	char* current_date = get_current_http_date();
 
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "%s 302 Found\r\n", client->version);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Location: %s\r\n", location);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Set-Cookie: session=%s; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=%d\r\n",
-                          token, max_age);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Date: %s\r\n", current_date);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Connection: close\r\n");
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "%s 302 Found\r\n", client->version);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Location: %s\r\n", location);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Set-Cookie: session=%s; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=%d\r\n",
+						  token, max_age);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Date: %s\r\n", current_date);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Connection: close\r\n");
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
 
-    free(current_date);
+	free(current_date);
 
-    send_all(client, headers, header_len);
+	send_all(client, headers, header_len);
 
-    log_message(LOG_INFO, "Sent 302 redirect to %s with session cookie", location);
-    return 0;
+	log_message(LOG_INFO, "Sent 302 redirect to %s with session cookie", location);
+
+	return 0;
 }
 
 /**
@@ -536,29 +544,31 @@ int send_login_redirect(const char* location, const char* token, int max_age, Cl
  *
  * @see send_file_response()
  */
-int send_options_response(Client* client) {
-    if (!client) return -1;
-    
-    char headers[MAX_HEADER_SIZE];
-    int header_len = 0;
-    char* current_date = get_current_http_date();
-    
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "%s 200 OK\r\n", client->version);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Allow: GET, HEAD, OPTIONS\r\n");
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Date: %s\r\n", current_date);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Content-Length: 0\r\n");
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
-    
-    free(current_date);
-    
-    send_all(client, headers, header_len);
+int send_options_response(client_t* client) {
+	if(!client)
+		return -1;
 
-    log_message(LOG_INFO, "Sent OPTIONS response");
-    return 0;
+	char headers[MAX_HEADER_SIZE];
+	int header_len = 0;
+	char* current_date = get_current_http_date();
+
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "%s 200 OK\r\n", client->version);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Allow: GET, HEAD, OPTIONS\r\n");
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Date: %s\r\n", current_date);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Content-Length: 0\r\n");
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
+
+	free(current_date);
+
+	send_all(client, headers, header_len);
+
+	log_message(LOG_INFO, "Sent OPTIONS response");
+
+	return 0;
 }
 
 /**
@@ -579,48 +589,50 @@ int send_options_response(Client* client) {
  * @see send_file_response()
  */
 
-int send_range_not_satisfiable(Client* client, off_t file_size) {
-    if (!client) return -1;
-    
-    char headers[MAX_HEADER_SIZE];
-    int header_len = 0;
-    char* current_date = get_current_http_date();
-    
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "%s 416 Range Not Satisfiable\r\n", client->version);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Content-Range: bytes */%ld\r\n", file_size);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Date: %s\r\n", current_date);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-                          "Content-Length: 0\r\n");
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
-    
-    free(current_date);
-    
-    send_all(client, headers, header_len);
+int send_range_not_satisfiable(client_t* client, off_t file_size) {
+	if(!client)
+		return -1;
 
-    log_message(LOG_INFO, "Sent 416 Range Not Satisfiable");
-    return 0;
+	char headers[MAX_HEADER_SIZE];
+	int header_len = 0;
+	char* current_date = get_current_http_date();
+
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "%s 416 Range Not Satisfiable\r\n", client->version);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Content-Range: bytes */%ld\r\n", file_size);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Date: %s\r\n", current_date);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
+						  "Content-Length: 0\r\n");
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
+
+	free(current_date);
+
+	send_all(client, headers, header_len);
+
+	log_message(LOG_INFO, "Sent 416 Range Not Satisfiable");
+
+	return 0;
 }
 
-void send_api_response(Client* client, int code, char* mime_type, char* body)
+void send_api_response(client_t* client, int code, char* mime_type, char* body)
 {
-    if(!client || !body)
-        return;
+	if(!client || !body)
+		return;
 
-    char headers[MAX_HEADER_SIZE];
-    int header_len = 0;
-    
-    header_len += snprintf(headers, MAX_HEADER_SIZE, "%s %d %s\r\n", client->version, code, get_status_message(code));
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "Content-Type: %s\r\n", mime_type);
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "Access-Control-Allow-Origin: *\r\n");
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n");
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "Access-Control-Allow-Headers: Content-Type\r\n");
-    header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "Content-Length: %ld\r\n\r\n", strlen(body));
+	char headers[MAX_HEADER_SIZE];
+	int header_len = 0;
 
-    send_all(client, headers, header_len);
-    send_all(client, body, strlen(body));
+	header_len += snprintf(headers, MAX_HEADER_SIZE, "%s %d %s\r\n", client->version, code, get_status_message(code));
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "Content-Type: %s\r\n", mime_type);
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "Access-Control-Allow-Origin: *\r\n");
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n");
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "Access-Control-Allow-Headers: Content-Type\r\n");
+	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "Content-Length: %ld\r\n\r\n", strlen(body));
 
-    log_message(LOG_INFO, "Sent %d %s from API response", code, get_status_message(code));
+	send_all(client, headers, header_len);
+	send_all(client, body, strlen(body));
+
+	log_message(LOG_INFO, "Sent %d %s from API response", code, get_status_message(code));
 }

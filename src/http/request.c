@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
-static void parse_header_line(Client* client, char* line);
-static void parse_range_header(Client* client, char* range_value);
+static void parse_header_line(client_t* client, char* line);
+static void parse_range_header(client_t* client, char* range_value);
 
 /**
  * Parses an HTTP/S request and creates a Client object
@@ -28,106 +28,106 @@ static void parse_range_header(Client* client, char* range_value);
  *
  * @see parse_header_line()
  */
-Client* parse_http_request(char* raw_request, int client_fd, SSL* ssl) {
-    // Allocate client structure
-    Client* client = calloc(1, sizeof(Client));
-    if (!client) {
-        log_message(LOG_ERROR, "Failed to allocate client structure");
-        return NULL;
-    }
-    client->content_length = -1;  /* -1 = header not present */
-    client->fd = -1;
-    
-    client->client_fd = client_fd;
-    client->fd = -1;  // No file open yet
-    
-    // SSL setup
-    if (ssl) {
-        client->is_ssl = 1;
-        client->ssl = ssl;
-    } else {
-        client->is_ssl = 0;
-        client->ssl = NULL;
-    }
-    
-    // Initialize defaults
-    client->range = 0;
-    client->start_range = 0;
-    client->end_range = -1;
-    client->tag = 0;
-    client->connection_status = 0;  // Default to close
-    client->DNT = 0;
-    client->GPC = 0;
-    client->upgrade_tls = 0;
-    
-    // Find body start (if POST request) before strtok_r modifies the buffer
-    char* body_start = strstr(raw_request, "\r\n\r\n");
-    if (body_start) {
-        body_start += 4;  // Skip past \r\n\r\n
-        client->body = strdup(body_start);
-    }
+client_t* parse_http_request(char* raw_request, int client_fd, SSL* ssl) {
+	// Allocate client structure
+	client_t* client = calloc(1, sizeof(client_t));
 
-    // Parse request line
-    char* saveptr;
-    char* line = strtok_r(raw_request, "\r\n", &saveptr);
+	if(!client) {
+		log_message(LOG_ERROR, "Failed to allocate client structure");
+		return NULL;
+	}
+	client->content_length = -1;  // -1 = header not present
+	client->fd = -1;
 
-    if (!line) {
-        log_message(LOG_WARN, "Empty HTTP request");
-        send_error_response(400, client);
-        free(client->body);
-        free(client);
-        return NULL;
-    }
+	client->client_fd = client_fd;
+	client->fd = -1;  // No file open yet
 
-    // Parse: METHOD PATH VERSION
-    char* token_saveptr;
-    char* raw_method  = strtok_r(line, " ", &token_saveptr);
-    char* raw_path    = strtok_r(NULL, " ", &token_saveptr);
-    char* raw_version = strtok_r(NULL, "\r\n", &token_saveptr);
+	// SSL setup
+	if(ssl) {
+		client->is_ssl = 1;
+		client->ssl = ssl;
+	} else {
+		client->is_ssl = 0;
+		client->ssl = NULL;
+	}
 
-    // Validate request line
-    if (!raw_method || !raw_path || !raw_version) {
-        log_message(LOG_WARN, "Malformed request line");
-        send_error_response(400, client);
-        free(client->body);
-        free(client);
-        return NULL;
-    }
+	// Initialize defaults
+	client->range = 0;
+	client->start_range = 0;
+	client->end_range = -1;
+	client->tag = 0;
+	client->connection_status = 0;  // Default to close
+	client->DNT = 0;
+	client->GPC = 0;
+	client->upgrade_tls = 0;
 
-    client->method  = strdup(raw_method);
-    client->path    = strdup(raw_path);
-    client->version = strdup(raw_version);
-    
-    // Validate HTTP version
-    if (strcmp(client->version, "HTTP/1.0") == 0) {
-        client->connection_status = 0;
-    } else if (strcmp(client->version, "HTTP/1.1") == 0) {
-        client->connection_status = 1;
-    } else {
-        log_message(LOG_WARN, "Unsupported HTTP version: %s", client->version);
-        send_error_response(505, client);
-        free(client->method);
-        free(client->path);
-        free(client->version);
-        free(client->body);
-        free(client);
-        return NULL;
-    }
-    
-    // Parse headers
-    while ((line = strtok_r(NULL, "\r\n", &saveptr)) != NULL) {
-        parse_header_line(client, line);
-    }
+	// Find body start (if POST request) before strtok_r modifies the buffer
+	char* body_start = strstr(raw_request, "\r\n\r\n");
+	if(body_start) {
+		body_start += 4;  // Skip past \r\n\r\n
+		client->body = strdup(body_start);
+	}
 
-    // Validate required headers (Host is required in HTTP/1.1)
-    if (strcmp(client->version, "HTTP/1.1") == 0 && !client->host) {
-        log_message(LOG_WARN, "Missing Host header in HTTP/1.1 request");
-        send_error_response(400, client);
-        free_client(client);
-        return NULL;
-    }
-    
-    return client;
+	// Parse request line
+	char* saveptr;
+	char* line = strtok_r(raw_request, "\r\n", &saveptr);
+
+	if(!line) {
+		log_message(LOG_WARN, "Empty HTTP request");
+		send_error_response(400, client);
+		free(client->body);
+		free(client);
+		return NULL;
+	}
+
+	// Parse: METHOD PATH VERSION
+	char* token_saveptr;
+	char* raw_method  = strtok_r(line, " ", &token_saveptr);
+	char* raw_path    = strtok_r(NULL, " ", &token_saveptr);
+	char* raw_version = strtok_r(NULL, "\r\n", &token_saveptr);
+
+	// Validate request line
+	if(!raw_method || !raw_path || !raw_version) {
+		log_message(LOG_WARN, "Malformed request line");
+		send_error_response(400, client);
+		free(client->body);
+		free(client);
+		return NULL;
+	}
+
+	client->method  = strdup(raw_method);
+	client->path    = strdup(raw_path);
+	client->version = strdup(raw_version);
+
+	// Validate HTTP version
+	if(strcmp(client->version, "HTTP/1.0") == 0) {
+		client->connection_status = 0;
+	} else if(strcmp(client->version, "HTTP/1.1") == 0) {
+		client->connection_status = 1;
+	} else {
+		log_message(LOG_WARN, "Unsupported HTTP version: %s", client->version);
+		send_error_response(505, client);
+		free(client->method);
+		free(client->path);
+		free(client->version);
+		free(client->body);
+		free(client);
+		return NULL;
+	}
+
+	// Parse headers
+	while((line = strtok_r(NULL, "\r\n", &saveptr)) != NULL)
+		parse_header_line(client, line);
+
+	// Validate required headers (Host is required in HTTP/1.1)
+	if(strcmp(client->version, "HTTP/1.1") == 0 && !client->host) {
+		log_message(LOG_WARN, "Missing Host header in HTTP/1.1 request");
+		send_error_response(400, client);
+		free_client(client);
+		return NULL;
+	}
+
+	return client;
 }
 
 /**
@@ -141,73 +141,58 @@ Client* parse_http_request(char* raw_request, int client_fd, SSL* ssl) {
  *
  * @warning Client fields point into the line buffer—do not free source
  */
-static void parse_header_line(Client* client, char* line) {
-    if (strncasecmp(line, "Host: ", 6) == 0) {
-        client->host = strdup(line + 6);
-    }
-    else if (strncasecmp(line, "Connection: ", 12) == 0) {
-        if (strncasecmp(line + 12, "keep-alive", 10) == 0) {
-            client->connection_status = 1;
-        } else {
-            client->connection_status = 0;
-        }
-    }
-    else if (strncasecmp(line, "User-Agent: ", 12) == 0) {
-        client->user_agent = strdup(line + 12);
-    }
-    else if (strncasecmp(line, "If-None-Match: ", 15) == 0) {
-        char* etag = line + 15;
-        // Remove quotes: "123" -> 123
-        if (*etag == '"') etag++;
-        char* end = strchr(etag, '"');
-        if (end) *end = '\0';
-        client->tag = (unsigned int)strtoul(etag, NULL, 10);
-    }
-    else if (strncasecmp(line, "If-Modified-Since: ", 19) == 0) {
-        client->modified_since = strdup(line + 19);
-    }
-    else if (strncasecmp(line, "Range: ", 7) == 0) {
-        parse_range_header(client, line + 7);
-    }
-    else if (strncasecmp(line, "DNT: ", 5) == 0) {
-        client->DNT = (line[5] == '1') ? 1 : 0;
-    }
-    else if (strncasecmp(line, "Sec-GPC: ", 9) == 0) {
-        client->GPC = (line[9] == '1') ? 1 : 0;
-    }
-    else if (strncasecmp(line, "Upgrade-Insecure-Requests: ", 27) == 0) {
-        client->upgrade_tls = (line[27] == '1') ? 1 : 0;
-    }
-    else if (strncasecmp(line, "Referer: ", 9) == 0) {
-        client->referer = strdup(line + 9);
-    }
-    else if (strncasecmp(line, "Accept: ", 8) == 0) {
-        client->accept = strdup(line + 8);
-    }
-    else if (strncasecmp(line, "Accept-Encoding: ", 17) == 0) {
-        client->encoding = strdup(line + 17);
-    }
-    else if (strncasecmp(line, "Accept-Language: ", 17) == 0) {
-        client->language = strdup(line + 17);
-    }
-    else if (strncasecmp(line, "Priority: ", 10) == 0) {
-        client->priority = strdup(line + 10);
-    }
-    else if (strncasecmp(line, "Content-Type: ", 14) == 0) {
-        client->post_type = strdup(line + 14);
-    }
-    else if (strncasecmp(line, "Content-Length: ", 16) == 0) {
-        client->content_length = strtol(line + 16, NULL, 10);
-    }
-    else if (strncasecmp(line, "Cookie: ", 8) == 0) {
-        // Extract the "session" cookie value from the Cookie header
-        char* sv = strstr(line + 8, "session=");
-        if (sv) {
-            sv += 8;  // skip "session="
-            char* end = strchr(sv, ';');
-            client->session_token = end ? strndup(sv, (size_t)(end - sv)) : strdup(sv);
-        }
-    }
+static void parse_header_line(client_t* client, char* line) {
+	if(strncasecmp(line, "Host: ", 6) == 0) {
+		client->host = strdup(line + 6);
+	} else if(strncasecmp(line, "Connection: ", 12) == 0) {
+		if(strncasecmp(line + 12, "keep-alive", 10) == 0)
+			client->connection_status = 1;
+		else
+			client->connection_status = 0;
+	} else if(strncasecmp(line, "User-Agent: ", 12) == 0) {
+		client->user_agent = strdup(line + 12);
+	} else if(strncasecmp(line, "If-None-Match: ", 15) == 0) {
+		char* etag = line + 15;
+		// Remove quotes: "123" -> 123
+		if(*etag == '"')
+			etag++;
+		char* end = strchr(etag, '"');
+		if(end)
+			*end = '\0';
+		client->tag = (unsigned int)strtoul(etag, NULL, 10);
+	} else if(strncasecmp(line, "If-Modified-Since: ", 19) == 0) {
+		client->modified_since = strdup(line + 19);
+	} else if(strncasecmp(line, "Range: ", 7) == 0) {
+		parse_range_header(client, line + 7);
+	} else if(strncasecmp(line, "DNT: ", 5) == 0) {
+		client->DNT = (line[5] == '1') ? 1 : 0;
+	} else if(strncasecmp(line, "Sec-GPC: ", 9) == 0) {
+		client->GPC = (line[9] == '1') ? 1 : 0;
+	} else if(strncasecmp(line, "Upgrade-Insecure-Requests: ", 27) == 0) {
+		client->upgrade_tls = (line[27] == '1') ? 1 : 0;
+	} else if(strncasecmp(line, "Referer: ", 9) == 0) {
+		client->referer = strdup(line + 9);
+	} else if(strncasecmp(line, "Accept: ", 8) == 0) {
+		client->accept = strdup(line + 8);
+	} else if(strncasecmp(line, "Accept-Encoding: ", 17) == 0) {
+		client->encoding = strdup(line + 17);
+	} else if(strncasecmp(line, "Accept-Language: ", 17) == 0) {
+		client->language = strdup(line + 17);
+	} else if(strncasecmp(line, "Priority: ", 10) == 0) {
+		client->priority = strdup(line + 10);
+	} else if(strncasecmp(line, "Content-Type: ", 14) == 0) {
+		client->post_type = strdup(line + 14);
+	} else if(strncasecmp(line, "Content-Length: ", 16) == 0) {
+		client->content_length = strtol(line + 16, NULL, 10);
+	} else if(strncasecmp(line, "Cookie: ", 8) == 0) {
+		// Extract the "session" cookie value from the Cookie header
+		char* sv = strstr(line + 8, "session=");
+		if(sv) {
+			sv += 8;  // skip "session="
+			char* end = strchr(sv, ';');
+			client->session_token = end ? strndup(sv, (size_t)(end - sv)) : strdup(sv);
+		}
+	}
 }
 
 /**
@@ -219,40 +204,40 @@ static void parse_header_line(Client* client, char* line) {
  * @param client Client structure to update
  * @param range_value Range request line to parse
  */
-static void parse_range_header(Client* client, char* range_value) {
-    if (strncmp(range_value, "bytes=", 6) != 0) {
-        client->range = 0;
-        return;
-    }
-    
-    client->range = 1;
-    range_value += 6;
-    
-    // Default values
-    client->start_range = 0;
-    client->end_range = -1;  // -1 means "to end of file"
-    
-    if (*range_value == '-') {
-        // Suffix range: bytes=-500 (last 500 bytes)
-        client->start_range = -atoll(range_value + 1);
-    } else {
-        // Regular range: bytes=0-1023 or bytes=1000-
-        char* dash = strchr(range_value, '-');
-        if (dash) {
-            *dash = '\0';
-            client->start_range = atoll(range_value);
-            dash++;
-            
-            // Skip whitespace
-            while (*dash == ' ' || *dash == '\t') dash++;
-            
-            // Parse end if present
-            if (*dash >= '0' && *dash <= '9') {
-                client->end_range = atoll(dash);
-            }
-            // else end_range stays -1 (to EOF)
-        }
-    }
+static void parse_range_header(client_t* client, char* range_value) {
+	if(strncmp(range_value, "bytes=", 6) != 0) {
+		client->range = 0;
+		return;
+	}
+
+	client->range = 1;
+	range_value += 6;
+
+	// Default values
+	client->start_range = 0;
+	client->end_range = -1;  // -1 means "to end of file"
+
+	if(*range_value == '-') {
+		// Suffix range: bytes=-500 (last 500 bytes)
+		client->start_range = -atoll(range_value + 1);
+	} else {
+		// Regular range: bytes=0-1023 or bytes=1000-
+		char* dash = strchr(range_value, '-');
+		if(dash) {
+			*dash = '\0';
+			client->start_range = atoll(range_value);
+			dash++;
+
+			// Skip whitespace
+			while(*dash == ' ' || *dash == '\t')
+				dash++;
+
+			// Parse end if present
+			if(*dash >= '0' && *dash <= '9')
+				client->end_range = atoll(dash);
+			// else end_range stays -1 (to EOF)
+		}
+	}
 }
 
 /**
@@ -268,15 +253,20 @@ static void parse_range_header(Client* client, char* range_value) {
  * @warning Does not check whether the method is a valid HTTP/S method
  */
 int validate_http_method(const char* method) {
-    if (!method) return 0;
-    
-    // Supported methods
-    if (strcmp(method, "GET") == 0) return 1;
-    if (strcmp(method, "POST") == 0) return 1;
-    if (strcmp(method, "HEAD") == 0) return 1;
-    if (strcmp(method, "OPTIONS") == 0) return 1;
-    
-    return 0;
+	if(!method)
+		return 0;
+
+	// Supported methods
+	if(strcmp(method, "GET") == 0)
+		return 1;
+	if(strcmp(method, "POST") == 0)
+		return 1;
+	if(strcmp(method, "HEAD") == 0)
+		return 1;
+	if(strcmp(method, "OPTIONS") == 0)
+		return 1;
+
+	return 0;
 }
 
 /**
@@ -293,17 +283,18 @@ int validate_http_method(const char* method) {
  * @warning Does not validate if the resource exists. Only if the path is valid.
  */
 int validate_path(const char* path) {
-    if (!path) return 0;
-    
-    // Check for path traversal
-    if (strstr(path, "..") != NULL) return 0;
-    if (strstr(path, "//") != NULL) return 0;
-    
-    /* strcspn(path, "\0") always equals strlen(path) because the reject set
-     * is an empty string. Embedded null bytes cannot appear in a C string
-     * passed here; this check is a no-op and can be removed. */
-    
-    return 1;
+	if(!path)
+		return 0;
+
+	// Check for path traversal
+	if(strstr(path, "..") != NULL)
+		return 0;
+	if(strstr(path, "//") != NULL)
+		return 0;
+
+	// strcspn always equals strlen because the reject set is an empty string.
+
+	return 1;
 }
 
 /**
@@ -321,21 +312,23 @@ int validate_path(const char* path) {
  * @warning Returned string must be freed elsewhere.
  */
 char* resolve_request_path(const char* request_path, const char* webroot) {
-    char resolved[4096];
-    
-    // Handle root request
-    const char* page = (strcmp(request_path, "/") == 0) ? "/landing.html" : request_path;
+	char resolved[4096];
 
-    /* Strip the query string — the filesystem path ends at '?'. */
-    char path_only[2048];
-    strncpy(path_only, page, sizeof(path_only) - 1);
-    path_only[sizeof(path_only) - 1] = '\0';
-    char* q = strchr(path_only, '?');
-    if (q) *q = '\0';
+	// Handle root request
+	const char* page = (strcmp(request_path, "/") == 0) ? "/landing.html" : request_path;
 
-    snprintf(resolved, sizeof(resolved), "%s/public%s", webroot, path_only);
+	// Strip the query string — the filesystem path ends at '?'.
+	char path_only[2048];
 
-    return strdup(resolved);
+	strncpy(path_only, page, sizeof(path_only) - 1);
+	path_only[sizeof(path_only) - 1] = '\0';
+	char* q = strchr(path_only, '?');
+	if(q)
+		*q = '\0';
+
+	snprintf(resolved, sizeof(resolved), "%s/public%s", webroot, path_only);
+
+	return strdup(resolved);
 }
 
 /**
@@ -349,33 +342,33 @@ char* resolve_request_path(const char* request_path, const char* webroot) {
  *
  * @note Other client struct data is freed elsewhere.
  */
-void free_client(Client* client) {
-    if (!client) return;
+void free_client(client_t* client) {
+	if(!client)
+		return;
 
-    if (client->fd >= 0) {
-        close(client->fd);
-    }
+	if(client->fd >= 0)
+		close(client->fd);
 
-    free(client->full_path);
-    free(client->client_ip);
+	free(client->full_path);
+	free(client->client_ip);
 
-    // These are all strdup'd in parse_http_request / parse_header_line
-    free(client->method);
-    free(client->path);
-    free(client->version);
-    free(client->body);
-    free(client->host);
-    free(client->user_agent);
-    free(client->referer);
-    free(client->accept);
-    free(client->encoding);
-    free(client->language);
-    free(client->priority);
-    free(client->modified_since);
-    free(client->post_type);
-    free(client->session_token);
+	// These are all strdup'd in parse_http_request / parse_header_line
+	free(client->method);
+	free(client->path);
+	free(client->version);
+	free(client->body);
+	free(client->host);
+	free(client->user_agent);
+	free(client->referer);
+	free(client->accept);
+	free(client->encoding);
+	free(client->language);
+	free(client->priority);
+	free(client->modified_since);
+	free(client->post_type);
+	free(client->session_token);
 
-    free(client);
+	free(client);
 }
 
 /**
@@ -389,16 +382,17 @@ void free_client(Client* client) {
  * @warning Does not validate all of these fields. Some may 
  * not have been initialzed by the client.
  */
-void print_client_info(const Client* client) {
-    if (!client) return;
+void print_client_info(const client_t* client) {
+	if(!client)
+		return;
 
-    log_message(LOG_DEBUG, "=== Client Request ===");
-    log_message(LOG_DEBUG, "%s %s %s", client->method, client->path, client->version);
-    log_message(LOG_DEBUG, "Host: %s", client->host ? client->host : "(none)");
-    log_message(LOG_DEBUG, "Connection: %s", client->connection_status ? "keep-alive" : "close");
-    log_message(LOG_DEBUG, "ETag: %u", client->tag);
-    log_message(LOG_DEBUG, "Range: %d (start=%ld, end=%ld)", 
-                client->range, client->start_range, client->end_range);
-    log_message(LOG_DEBUG, "SSL: %d", client->is_ssl);
-    log_message(LOG_DEBUG, "=====================");
+	log_message(LOG_DEBUG, "=== Client Request ===");
+	log_message(LOG_DEBUG, "%s %s %s", client->method, client->path, client->version);
+	log_message(LOG_DEBUG, "Host: %s", client->host ? client->host : "(none)");
+	log_message(LOG_DEBUG, "Connection: %s", client->connection_status ? "keep-alive" : "close");
+	log_message(LOG_DEBUG, "ETag: %u", client->tag);
+	log_message(LOG_DEBUG, "Range: %d (start=%ld, end=%ld)", 
+				client->range, client->start_range, client->end_range);
+	log_message(LOG_DEBUG, "SSL: %d", client->is_ssl);
+	log_message(LOG_DEBUG, "=====================");
 }

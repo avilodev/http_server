@@ -8,15 +8,14 @@
 #include "types.h"
 
 typedef struct {
-    const char* key;
-    void* value;
+	const char* key;
+	void* value;
 } ht_entry;
 
-
 typedef struct hash_table {
-    ht_entry* entries;
-    size_t capacity;
-    size_t length;
+	ht_entry* entries;
+	size_t capacity;
+	size_t length;
 } ht;
 
 ht* init_hash(void);
@@ -24,4 +23,4 @@ void* ht_get(ht* table, const char* key);
 const char* ht_set(ht* table, const char* key, void* value);
 void ht_destroy(ht* table);
 
-#endif
+#endif /* HASH_TABLE_H */

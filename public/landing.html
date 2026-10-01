@@ -1,48 +1,151 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>File Selector</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    h1 {
-      margin-top: 30px;
-    }
-    a {
-      margin-right: 15px; 
-    }
-    ol li {
-      margin: 8px 0;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Adam - computer science graduate focused on C, Linux, and networking.">
+<title>Adam</title>
+<link rel="icon" type="image/jpeg" href="/cat.jpeg">
+<style>
+:root {
+  --bg: #fafaf9;
+  --card: #ffffff;
+  --text: #1c1917;
+  --muted: #57534e;
+  --border: #e7e5e4;
+  --accent: #2563eb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131211;
+    --card: #1c1a19;
+    --text: #f5f5f4;
+    --muted: #a8a29e;
+    --border: #2e2b29;
+    --accent: #60a5fa;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 860px; margin: 0 auto; padding: 4rem 1.25rem 3rem; }
+a { color: var(--accent); text-decoration: none; }
+a:hover, a:focus-visible { text-decoration: underline; }
+h1 { font-size: 2.4rem; margin: 0 0 .5rem; letter-spacing: -.02em; }
+h2 { font-size: 1.3rem; margin: 0 0 1rem; }
+h3 { font-size: 1.05rem; margin: 0 0 .4rem; }
+p { margin: 0 0 1rem; }
+.tagline { color: var(--muted); font-size: 1.1rem; max-width: 40em; }
+.links { display: flex; flex-wrap: wrap; gap: 1.25rem; margin: 0; padding: 0; list-style: none; }
+section { margin-top: 3.5rem; padding-top: 2rem; border-top: 1px solid var(--border); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+.card p { color: var(--muted); font-size: .95rem; margin-bottom: .75rem; }
+.card .tech { font-size: .8rem; margin-top: auto; margin-bottom: .6rem; }
+.card a { font-size: .95rem; }
+footer { margin-top: 3rem; color: var(--muted); font-size: .9rem; }
+</style>
 </head>
 <body>
-  <h1>Error Pages</h1>
-  <select id="errorDropdown" onchange="navigateToError()">
-    <option value="">Select an Error Page</option>
-    <option value="error_pages/400.html">400 - Bad Request</option>
-    <option value="error_pages/403.html">403 - Forbidden</option>
-    <option value="error_pages/404.html">404 - Not Found</option>
-    <option value="error-pages/500.html">500 - Internal Server Error</option>
-  </select> 
+<main>
 
+<header>
+<h1>Adam</h1>
+<p class="tagline">Computer science graduate looking for entry-level software engineering, systems administration, and networking jobs.</p>
+<ul class="links">
+<li><a href="https://github.com/avilodev">GitHub</a></li>
+<li><a href="mailto:avilo.dev@gmail.com">Email</a></li>
+</ul>
+</header>
 
-  <br><br>
-  <a href="video.html">Videos</a> 
-  <a href="https://www.github.com/avilodev">Github Repo</a>
-  <a href="tictactoe/index.html">TicTacToe Game</a>
-  <a href="capybara.html">Capybara website</a>
-  
-  <script>
-    function navigateToError() {
-      const file = document.getElementById("errorDropdown").value; 
-      if (file) window.location.href = file;
-    }
-    
-  </script>
+<section>
+<h2>About</h2>
+<p>I graduated from UC Santa Cruz in 2025 with a B.S. in Computer Science and Engineering. I also have an A.S. in Computer Science and Mathematics from Palomar College. I live in Maryville, Tennessee.</p>
+<p>I mostly write C and run my projects on Linux. I like building things from scratch, like servers and network tools, so I understand how they work.</p>
+</section>
+
+<section>
+<h2>Projects</h2>
+<div class="grid">
+
+<article class="card">
+<h3>DHCP Server</h3>
+<p>Hands out IP addresses on a network. Supports fixed IPs, blocking devices, and running several servers together.</p>
+<p class="tech">C, Linux, Raspberry Pi</p>
+<a href="https://github.com/avilodev/dhcp">View on GitHub</a>
+</article>
+
+<article class="card">
+<h3>DNS Servers</h3>
+<p>Two DNS servers: one that answers for its own domain, and one that looks up names through an upstream server.</p>
+<p class="tech">C, Linux</p>
+<a href="https://github.com/avilodev/dns">View on GitHub</a>
+</article>
+
+<article class="card">
+<h3>HTTP Server</h3>
+<p>A web server with HTTPS, a thread pool, caching, and logging. This website runs on it.</p>
+<p class="tech">C, Linux, OpenSSL</p>
+<a href="https://github.com/avilodev/http_server">View on GitHub</a>
+</article>
+
+<article class="card">
+<h3>STUN Server and Client</h3>
+<p>Lets a device find out its public IP address.</p>
+<p class="tech">C, Linux, networking</p>
+<a href="https://github.com/avilodev/stun">View on GitHub</a>
+</article>
+
+<article class="card">
+<h3>LAN System</h3>
+<p>Lets people play local network games online by creating a tunnel between two separate networks.</p>
+<p class="tech">Networking, tunneling</p>
+<a href="https://github.com/avilodev/LAN_System">View on GitHub</a>
+</article>
+
+<article class="card">
+<h3>Metadata Parser</h3>
+<p>Reads 60 file types and pulls out their metadata. Uses one thread per file and no outside libraries.</p>
+<p class="tech">C, Linux, multithreading</p>
+<a href="https://github.com/avilodev/Metadata-Parser">View on GitHub</a>
+</article>
+
+<article class="card">
+<h3>Multiverse MMO</h3>
+<p>A 3D online game. Windows client, plus three Linux servers (login, realm, world) using PostgreSQL and Redis. Not finished yet; I'm adding content.</p>
+<p class="tech">C, OpenGL, PostgreSQL, Redis</p>
+<a href="https://github.com/avilodev/mmo">View on GitHub</a>
+</article>
+
+<article class="card">
+<h3>LifeLink</h3>
+<p>Raspberry Pi Pico program that reads heart rate, blood oxygen, and body temperature from two sensors and sends them over USB and Bluetooth.</p>
+<p class="tech">C, embedded, I2C, Bluetooth</p>
+<a href="https://github.com/avilodev/lifelink">View on GitHub</a>
+</article>
+
+</div>
+<p style="margin-top:1.25rem"><a href="https://github.com/avilodev">See all my projects on GitHub</a></p>
+</section>
+
+<section>
+<h2>Contact</h2>
+<p>Email: <a href="mailto:avilo.dev@gmail.com">avilo.dev@gmail.com</a></p>
+</section>
+
+<footer>Served by my own HTTP server, written in C.</footer>
+
+</main>
 </body>
 </html>

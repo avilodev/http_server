@@ -21,31 +21,30 @@
  *
  * @see add_node(), free_tree()
  */
-struct Node* init_tree() {
-    struct Node* head = NULL;
+struct node_t* init_tree() {
+	struct node_t* head = NULL;
 
-    char cmd[READSIZE];
-    snprintf(cmd, sizeof(cmd), "find %s/public -type f", SERVER_PATH);
+	char cmd[READSIZE];
 
-    /* popen pipes find output directly into this process, one line at a time.
-     * This avoids the intermediate results.txt file and the 4096-byte buffer
-     * limit that previously caused large webroot directories to be truncated. */
-    FILE* fp = popen(cmd, "r");
-    if (!fp) {
-        fprintf(stderr, "Failed to run find command\n");
-        return NULL;
-    }
+	snprintf(cmd, sizeof(cmd), "find %s/public -type f", SERVER_PATH);
 
-    char line[512];
-    while (fgets(line, sizeof(line), fp)) {
-        line[strcspn(line, "\n")] = '\0';
-        if (line[0] != '\0') {
-            head = add_node(head, line);
-        }
-    }
+	// popen pipes find output directly into this process, one line at a time.
+	FILE* fp = popen(cmd, "r");
+	if(!fp) {
+		fprintf(stderr, "Failed to run find command\n");
+		return NULL;
+	}
 
-    pclose(fp);
-    return head;
+	char line[512];
+	while(fgets(line, sizeof(line), fp)) {
+		line[strcspn(line, "\n")] = '\0';
+		if(line[0] != '\0')
+			head = add_node(head, line);
+	}
+
+	pclose(fp);
+
+	return head;
 }
 
 /**
@@ -67,61 +66,60 @@ struct Node* init_tree() {
  *
  * @see hashPath(), hashFile(), update_last_modified(), insert_node()
  */
-struct Node* add_node(struct Node* head, char* filename) {
-    if (!filename) {
-        return NULL;
-    }
+struct node_t* add_node(struct node_t* head, char* filename) {
+	if(!filename)
+		return NULL;
 
-    // Allocate new node
-    struct Node* new_node = malloc(sizeof(struct Node));
-    if (!new_node) {
-        fprintf(stderr, "Failed to allocate memory for node\n");
-        return NULL;
-    }
+	// Allocate new node
+	struct node_t* new_node = malloc(sizeof(struct node_t));
+	if(!new_node) {
+		fprintf(stderr, "Failed to allocate memory for node\n");
+		return NULL;
+	}
 
-    // Duplicate file path
-    new_node->path = strdup(filename);
-    if (!new_node->path) {
-        free(new_node);
-        return NULL;
-    }
+	// Duplicate file path
+	new_node->path = strdup(filename);
+	if(!new_node->path) {
+		free(new_node);
+		return NULL;
+	}
 
-    new_node->left = NULL;
-    new_node->right = NULL;
+	new_node->left = NULL;
+	new_node->right = NULL;
 
-    // Calculate path hash
-    unsigned int path_hash = hashPath(filename);
-    if (path_hash == 0) {
-        free(new_node->path);
-        free(new_node);
-        return NULL;
-    }
-    new_node->path_hash = path_hash;
+	// Calculate path hash
+	unsigned int path_hash = hash_path(filename);
+	if(path_hash == 0) {
+		free(new_node->path);
+		free(new_node);
+		return NULL;
+	}
+	new_node->path_hash = path_hash;
 
-    // Calculate file content hash
-    unsigned int file_hash = hashFile(filename);
-    if (file_hash == 0) {
-        free(new_node->path);
-        free(new_node);
-        return NULL;
-    }
-    new_node->file_hash = file_hash;
-    
-    // Get last modified timestamp
-    new_node->last_modified = update_last_modified(filename);
+	// Calculate file content hash
+	unsigned int file_hash = hash_file(filename);
+	if(file_hash == 0) {
+		free(new_node->path);
+		free(new_node);
+		return NULL;
+	}
+	new_node->file_hash = file_hash;
 
-    // If tree is empty, return new node as root
-    if (head == NULL) {
-        return new_node;
-    }
+	// Get last modified timestamp
+	new_node->last_modified = update_last_modified(filename);
 
-    // Insert into existing tree; free the node if a duplicate path hash was found
-    if (!insert_node(head, new_node)) {
-        free(new_node->path);
-        free(new_node->last_modified);
-        free(new_node);
-    }
-    return head;
+	// If tree is empty, return new node as root
+	if(head == NULL)
+		return new_node;
+
+	// Insert into existing tree; free the node if a duplicate path hash was found
+	if(!insert_node(head, new_node)) {
+		free(new_node->path);
+		free(new_node->last_modified);
+		free(new_node);
+	}
+
+	return head;
 }
 
 /**
@@ -140,34 +138,29 @@ struct Node* add_node(struct Node* head, char* filename) {
  *
  * @see add_node()
  */
-int hashFile(char* filename) {
-    if (!filename) {
-        return 0;
-    }
+int hash_file(char* filename) {
+	if(!filename)
+		return 0;
 
-    unsigned long hash = 5381;
-    
-    int fd = open(filename, O_RDONLY);
-    if (fd < 0) {
-        return 0;
-    }
+	unsigned long hash = 5381;
 
-    char buffer[READSIZE];
-    ssize_t n;
+	int fd = open(filename, O_RDONLY);
+	if(fd < 0)
+		return 0;
 
-    while ((n = read(fd, buffer, sizeof(buffer))) > 0) {
-        for (int i = 0; i < n; i++) {
-            hash += buffer[i];
-        }
-    }
-    
-    close(fd);
+	char buffer[READSIZE];
+	ssize_t n;
 
-    if (n < 0) {
-        return 0;
-    }
+	while((n = read(fd, buffer, sizeof(buffer))) > 0)
+		for(int i = 0; i < n; i++)
+			hash += buffer[i];
 
-    return hash;
+	close(fd);
+
+	if(n < 0)
+		return 0;
+
+	return hash;
 }
 
 /**
@@ -186,19 +179,17 @@ int hashFile(char* filename) {
  *
  * @see add_node(), lookupNode()
  */
-int hashPath(const char* filename) {
-    if (!filename) {
-        return 0;
-    }
+int hash_path(const char* filename) {
+	if(!filename)
+		return 0;
 
-    unsigned long hash = 5381;
-    int c;
+	unsigned long hash = 5381;
+	int c;
 
-    while ((c = *filename++)) {
-        hash = ((hash << 5) + hash) + c;  // hash * 33 + c
-    }
+	while((c = *filename++))
+		hash = ((hash << 5) + hash) + c;  // hash * 33 + c
 
-    return hash;
+	return hash;
 }
 
 /**
@@ -219,26 +210,23 @@ int hashPath(const char* filename) {
  * @see add_node()
  */
 char* update_last_modified(char* filename) {
-    if (!filename) {
-        return NULL;
-    }
+	if(!filename)
+		return NULL;
 
-    struct stat file_stat;
-    if (stat(filename, &file_stat) != 0) {
-        return NULL;
-    }
+	struct stat file_stat;
+	if(stat(filename, &file_stat) != 0)
+		return NULL;
 
-    char* time_buf = malloc(READSIZE);
-    if (!time_buf) {
-        return NULL;
-    }
-    
-    struct tm tm_info;
-    /* gmtime_r writes into the supplied struct rather than a shared static buffer. */
-    gmtime_r(&file_stat.st_mtime, &tm_info);
-    strftime(time_buf, READSIZE, "%a, %d %b %Y %H:%M:%S GMT", &tm_info);
-    
-    return time_buf;
+	char* time_buf = malloc(READSIZE);
+	if(!time_buf)
+		return NULL;
+
+	struct tm tm_info;
+	// gmtime_r writes into the supplied struct rather than a shared static buffer.
+	gmtime_r(&file_stat.st_mtime, &tm_info);
+	strftime(time_buf, READSIZE, "%a, %d %b %Y %H:%M:%S GMT", &tm_info);
+
+	return time_buf;
 }
 
 /**
@@ -256,29 +244,29 @@ char* update_last_modified(char* filename) {
  *
  * @see add_node()
  */
-/* Returns 1 if new_node was inserted, 0 if a duplicate hash was found.
- * Caller must free new_node when 0 is returned. */
-int insert_node(struct Node* head, struct Node* new_node) {
-    struct Node* curr = head;
+// Returns 1 if new_node was inserted, 0 if a duplicate hash was found.
+int insert_node(struct node_t* head, struct node_t* new_node) {
+	struct node_t* curr = head;
 
-    while (curr) {
-        if (curr->path_hash == new_node->path_hash) {
-            return 0;
-        } else if (curr->path_hash > new_node->path_hash) {
-            if (!curr->left) {
-                curr->left = new_node;
-                return 1;
-            }
-            curr = curr->left;
-        } else {
-            if (!curr->right) {
-                curr->right = new_node;
-                return 1;
-            }
-            curr = curr->right;
-        }
-    }
-    return 0;
+	while(curr) {
+		if(curr->path_hash == new_node->path_hash) {
+			return 0;
+		} else if(curr->path_hash > new_node->path_hash) {
+			if(!curr->left) {
+				curr->left = new_node;
+				return 1;
+			}
+			curr = curr->left;
+		} else {
+			if(!curr->right) {
+				curr->right = new_node;
+				return 1;
+			}
+			curr = curr->right;
+		}
+	}
+
+	return 0;
 }
 
 /**
@@ -296,21 +284,19 @@ int insert_node(struct Node* head, struct Node* new_node) {
  *
  * @see init_tree()
  */
-void printTree(struct Node* curr, int level) {
-    if (curr == NULL) {
-        return;
-    }
+void print_tree(struct node_t* curr, int level) {
+	if(curr == NULL)
+		return;
 
-    // Print indentation
-    for (int i = 0; i < level; i++) {
-        printf(i == level - 1 ? "|-" : "  ");
-    }
+	// Print indentation
+	for(int i = 0; i < level; i++)
+		printf(i == level - 1 ? "|-" : "  ");
 
-    printf("%s: %u\n", curr->path, curr->path_hash);
-    
-    // Recursively print children
-    printTree(curr->left, level + 1);
-    printTree(curr->right, level + 1);
+	printf("%s: %u\n", curr->path, curr->path_hash);
+
+	// Recursively print children
+	print_tree(curr->left, level + 1);
+	print_tree(curr->right, level + 1);
 }
 
 /**
@@ -330,24 +316,22 @@ void printTree(struct Node* curr, int level) {
  *
  * @see hashPath(), add_node()
  */
-struct Node* lookupNode(struct Node* head, unsigned int tag) {
-    if (!head || tag == 0) {
-        return NULL;
-    }
+struct node_t* lookup_node(struct node_t* head, unsigned int tag) {
+	if(!head || tag == 0)
+		return NULL;
 
-    struct Node* curr = head;
+	struct node_t* curr = head;
 
-    while (curr) {
-        if (curr->path_hash == tag) {
-            return curr;
-        } else if (curr->path_hash > tag) {
-            curr = curr->left;
-        } else {
-            curr = curr->right;
-        }
-    }
+	while(curr) {
+		if(curr->path_hash == tag)
+			return curr;
+		else if(curr->path_hash > tag)
+			curr = curr->left;
+		else
+			curr = curr->right;
+	}
 
-    return NULL;
+	return NULL;
 }
 
 /**
@@ -365,17 +349,16 @@ struct Node* lookupNode(struct Node* head, unsigned int tag) {
  *
  * @see init_tree(), add_node()
  */
-void free_tree(struct Node* node) {
-    if (node == NULL) {
-        return;
-    }
+void free_tree(struct node_t* node) {
+	if(node == NULL)
+		return;
 
-    // Post-order traversal: free children first
-    free_tree(node->left);
-    free_tree(node->right);
-    
-    // Free node data
-    free(node->path);
-    free(node->last_modified);
-    free(node);
+	// Post-order traversal: free children first
+	free_tree(node->left);
+	free_tree(node->right);
+
+	// Free node data
+	free(node->path);
+	free(node->last_modified);
+	free(node);
 }
