@@ -20,7 +20,7 @@ static pthread_mutex_t g_session_mutex = PTHREAD_MUTEX_INITIALIZER;
 static void generate_token(char* out) {
 	unsigned char raw[32];
 
-	randombytes_buf(raw, sizeof(raw));
+	randombytes_buf(raw, sizeof(raw)); 
 	for(int i = 0; i < 32; i++)
 		snprintf(out + i * 2, 3, "%02x", raw[i]);
 	out[SESSION_TOKEN_LEN] = '\0';
@@ -67,6 +67,27 @@ const char* session_get_user(const char* token) {
 	pthread_mutex_unlock(&g_session_mutex);
 
 	return result;
+}
+
+int session_is_valid(const char* token) {
+	if(!token)
+		return 0;
+
+	int valid = 0;
+
+	pthread_mutex_lock(&g_session_mutex);
+	time_t now = time(NULL);
+
+	for(session_t* s = g_sessions; s; s = s->next) {
+		if(strncmp(s->token, token, SESSION_TOKEN_LEN) == 0) {
+			valid = (s->expires > now);
+			break;
+		}
+	}
+
+	pthread_mutex_unlock(&g_session_mutex);
+
+	return valid;
 }
 
 void session_destroy(const char* token) {

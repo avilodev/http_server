@@ -152,19 +152,28 @@ int add_user(sqlite3* db, const char* username, const char* password)
 
 void handle_post(client_t* client)
 {
-	// Reject missing or oversized bodies before touching any content.
 	if(client->content_length < 0) {
-		send_error_response(411, client);  // 411 Length Required
+		send_error_response(411, client);
 		return;
 	}
 	if(client->content_length > MAX_BODY_SIZE) {
-		send_error_response(413, client);  // 413 Content Too Large
+		send_error_response(413, client);
 		return;
 	}
 
-	if(client->post_type)
-		if(strncmp(client->post_type, "application/x-www-form-urlencoded", 33) == 0)
-			handle_post_form_urlencoded(client);
+	// body is NULL if the request had no blank line (\r\n\r\n)
+	if(!client->body) {
+		send_error_response(400, client);
+		return;
+	}
+
+	if(client->post_type &&
+	   strncmp(client->post_type, "application/x-www-form-urlencoded", 33) == 0) {
+		handle_post_form_urlencoded(client);
+		return;
+	}
+
+	send_error_response(415, client);
 }
 
 void handle_post_form_urlencoded(client_t* client)

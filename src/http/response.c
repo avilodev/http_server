@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <errno.h>
+#include <openssl/err.h>
 
 #define MAX_HEADER_SIZE 8192
 #define BUFFER_SIZE 65536
@@ -27,11 +28,14 @@ static int send_all(client_t* client, const void* buf, size_t len)
 			n = SSL_write(client->ssl, p, (int)len);
 			if(n <= 0) {
 				log_message(LOG_WARN, "SSL_write failed: %d", SSL_get_error(client->ssl, (int)n));
+				ERR_clear_error();
 				return -1;
 			}
 		} else {
 			n = send(client->client_fd, p, len, MSG_NOSIGNAL);
 			if(n < 0) {
+				if(errno == EINTR)
+					continue;
 				log_message(LOG_WARN, "send() failed: %s", strerror(errno));
 				return -1;
 			}
@@ -72,7 +76,7 @@ int send_file_response(client_t* client, struct node_t* cache_node) {
 		return -1;
 	}
 
-	// Get file metadata — fstat when fd is open (GET), stat for HEAD
+	// Get file metadata: fstat when fd is open (GET), stat for HEAD
 	struct stat st;
 
 	if(client->fd >= 0) {
@@ -82,12 +86,18 @@ int send_file_response(client_t* client, struct node_t* cache_node) {
 			return -1;
 		}
 	} else {
-		// HEAD request: fd intentionally not opened
 		if(stat(client->full_path, &st) < 0) {
 			log_message(LOG_ERROR, "stat failed: %s", strerror(errno));
 			send_error_response(500, client);
 			return -1;
 		}
+	}
+
+	// Directories and other non-files: reply 404 instead of promising a body we can't send
+	if(!S_ISREG(st.st_mode)) {
+		log_message(LOG_WARN, "Not a regular file: %s", client->full_path);
+		send_error_response(404, client);
+		return -1;
 	}
 
 	off_t file_size = st.st_size;
@@ -99,25 +109,24 @@ int send_file_response(client_t* client, struct node_t* cache_node) {
 	if(client->range) {
 		is_partial = 1;
 
-		// Handle suffix range (last N bytes)
 		if(client->start_range < 0) {
+			// Suffix range (last N bytes)
 			off_t suffix_len = -client->start_range;
 			start = (file_size > suffix_len) ? (file_size - suffix_len) : 0;
 			end = file_size - 1;
 		} else {
 			start = client->start_range;
 
-			// end_range == -1 is the sentinel for "to EOF"
+			// end_range == -1 means "to end of file"
 			if(client->end_range >= 0 && client->end_range < file_size)
 				end = client->end_range;
 			else
 				end = file_size - 1;
 		}
 
-		// Validate range
 		if(start >= file_size || start < 0 || end < start) {
-			log_message(LOG_WARN, "Invalid range: %ld-%ld for file size %ld", 
-					   start, end, file_size);
+			log_message(LOG_WARN, "Invalid range: %ld-%ld for file size %ld",
+						start, end, file_size);
 			send_error_response(416, client);
 			return -1;
 		}
@@ -129,73 +138,65 @@ int send_file_response(client_t* client, struct node_t* cache_node) {
 	char headers[MAX_HEADER_SIZE];
 	int header_len = 0;
 
-	// Status line
 	if(is_partial) {
 		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-							  "%s 206 Partial Content\r\n", client->version);
+							   "%s 206 Partial Content\r\n", client->version);
 	} else {
 		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-							  "%s 200 OK\r\n", client->version);
+							   "%s 200 OK\r\n", client->version);
 	}
 
 	extern ht* mime_table;
 
-	// Headers
 	const char* content_type = mime_get_type_from_filename(mime_table, client->full_path);
 	char* current_date = get_current_http_date();
 
 	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-						  "Content-Type: %s\r\n", content_type);
+						   "Content-Type: %s\r\n", content_type);
 	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-						  "Content-Length: %ld\r\n", content_length);
+						   "Content-Length: %ld\r\n", (long)content_length);
 	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-						  "Accept-Ranges: bytes\r\n");
+						   "Accept-Ranges: bytes\r\n");
 	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-						  "Date: %s\r\n", current_date);
+						   "Date: %s\r\n", current_date);
 
-	// Cache headers
 	if(cache_node && !client->is_ssl) {
 		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-							  "ETag: \"%u\"\r\n", cache_node->file_hash);
+							   "ETag: \"%u\"\r\n", cache_node->file_hash);
 	}
 
 	if(cache_node && cache_node->last_modified) {
 		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-							  "Last-Modified: %s\r\n", cache_node->last_modified);
+							   "Last-Modified: %s\r\n", cache_node->last_modified);
 	}
 
-	// Range header
 	if(is_partial) {
 		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-							  "Content-Range: bytes %ld-%ld/%ld\r\n", 
-							  start, end, file_size);
+							   "Content-Range: bytes %ld-%ld/%ld\r\n",
+							   (long)start, (long)end, (long)file_size);
 	}
 
-	//Server 
 	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-						"Server: %s\r\n", SERVER_VERSION);
+						   "Server: %s\r\n", SERVER_VERSION);
 
-	// Connection header
 	if(client->connection_status) {
 		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-							  "Connection: keep-alive\r\n");
+							   "Connection: keep-alive\r\n");
 	} else {
 		header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len,
-							  "Connection: close\r\n");
+							   "Connection: close\r\n");
 	}
 
-	// End headers
 	header_len += snprintf(headers + header_len, MAX_HEADER_SIZE - header_len, "\r\n");
 
 	free(current_date);
 
-	// Send headers
-	if(send_all(client, headers, header_len) < 0) {
+	if(send_all(client, headers, (size_t)header_len) < 0) {
 		log_message(LOG_ERROR, "Failed to send headers");
 		return -1;
 	}
 
-	// For HEAD requests, stop here
+	// HEAD requests: headers only
 	if(strcmp(client->method, "HEAD") == 0) {
 		log_message(LOG_INFO, "HEAD request - headers only");
 		return 0;
@@ -212,45 +213,34 @@ int send_file_response(client_t* client, struct node_t* cache_node) {
 	off_t total_sent = 0;
 
 	while(remaining > 0) {
-		int size_to_read = (remaining > BUFFER_SIZE) ? BUFFER_SIZE : remaining;
+		size_t want = (remaining > BUFFER_SIZE) ? BUFFER_SIZE : (size_t)remaining;
 
-		ssize_t bytes_read = read(client->fd, buffer, size_to_read);
-		if(bytes_read <= 0) {
-			if(bytes_read < 0 && errno == EINTR)
+		ssize_t n = read(client->fd, buffer, want);
+		if(n < 0) {
+			if(errno == EINTR)
 				continue;
-			break;
+			log_message(LOG_ERROR, "read failed: %s", strerror(errno));
+			return -1;
+		}
+		if(n == 0) {
+			// File got shorter than we told the client
+			log_message(LOG_ERROR, "Unexpected EOF (sent %ld/%ld bytes)",
+						(long)total_sent, (long)content_length);
+			return -1;
 		}
 
-		// Inner loop: send all bytes_read bytes before the next read().
-		ssize_t write_offset = 0;
-		while(write_offset < bytes_read) {
-			ssize_t bytes_sent;
-			if(client->is_ssl)
-				bytes_sent = SSL_write(client->ssl, buffer + write_offset, bytes_read - write_offset);
-			else
-				bytes_sent = send(client->client_fd, buffer + write_offset, bytes_read - write_offset, 0);
-
-			if(bytes_sent <= 0) {
-				if(errno == EINTR)
-					continue;
-				if(errno == ECONNRESET || errno == EPIPE) {
-					log_message(LOG_INFO, "Client disconnected (sent %ld/%ld bytes)",
-							   total_sent, content_length);
-					return 0;
-				}
-				log_message(LOG_ERROR, "Send failed: %s", strerror(errno));
-				return -1;
-			}
-
-			write_offset += bytes_sent;
+		if(send_all(client, buffer, (size_t)n) < 0) {
+			log_message(LOG_INFO, "Client gone or send timed out (sent %ld/%ld bytes)",
+						(long)total_sent, (long)content_length);
+			return -1;
 		}
 
-		remaining -= bytes_read;
-		total_sent += bytes_read;
+		remaining  -= n;
+		total_sent += n;
 	}
 
-	log_message(LOG_INFO, "Sent %ld bytes (status %d)", 
-			   total_sent, is_partial ? 206 : 200);
+	log_message(LOG_INFO, "Sent %ld bytes (status %d)",
+				(long)total_sent, is_partial ? 206 : 200);
 
 	return 0;
 }
@@ -390,10 +380,16 @@ const char* get_status_message(int code) {
 	case 200: return "OK";
 	case 206: return "Partial Content";
 	case 301: return "Moved Permanently";
+	case 302: return "Found";
 	case 304: return "Not Modified";
 	case 400: return "Bad Request";
+	case 401: return "Unauthorized";
 	case 403: return "Forbidden";
 	case 404: return "Not Found";
+	case 409: return "Conflict";
+	case 411: return "Length Required";
+	case 413: return "Content Too Large";
+	case 415: return "Unsupported Media Type";
 	case 416: return "Range Not Satisfiable";
 	case 418: return "I'm a teapot";
 	case 500: return "Internal Server Error";

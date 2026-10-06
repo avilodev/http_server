@@ -53,6 +53,8 @@ static pthread_rwlock_t g_cache_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 // Server start time for uptime calculation
 time_t g_server_start = 0;
 
+void* handle_client_thread(void* arg);
+
 /**
  * Signal handler for managing server and cache operations.
  * 
@@ -150,16 +152,167 @@ static int compare_http_dates(const char* a, const char* b) {
 	return ta.tm_sec - tb.tm_sec;
 }
 
+// Serves a file: cache check (304), open, send.
+// The cache lock is held only for the lookup, never during network I/O.
+// Sets client->connection_status = 0 if the connection should be closed.
+static void serve_static(client_t* client) {
+	struct node_t  snap;
+	struct node_t* cache_node = NULL;
+	char* last_mod_copy = NULL;
+
+	// Copy what we need out of the cache, then release the lock right away
+	pthread_rwlock_rdlock(&g_cache_rwlock);
+	struct node_t* found = cache_lookup(g_cache_tree, client->full_path);
+	if(found) {
+		memset(&snap, 0, sizeof(snap));
+		snap.file_hash = found->file_hash;
+		if(found->last_modified) {
+			last_mod_copy = strdup(found->last_modified);
+			snap.last_modified = last_mod_copy;
+		}
+		cache_node = &snap;
+	}
+	pthread_rwlock_unlock(&g_cache_rwlock);
+
+	int not_modified = 0;
+
+	if(cache_node && cache_node->last_modified && client->modified_since &&
+	   compare_http_dates(cache_node->last_modified, client->modified_since) <= 0) {
+		log_message(LOG_INFO, "Resource not modified (If-Modified-Since) - sending 304");
+		not_modified = 1;
+	} else if(cache_node && client->tag != 0 && cache_node->file_hash == client->tag) {
+		log_message(LOG_INFO, "ETag match (client: %u, cache: %u) - sending 304",
+					client->tag, cache_node->file_hash);
+		not_modified = 1;
+	}
+
+	if(not_modified) {
+		send_not_modified_response(client, cache_node);
+	} else {
+		int ok = 1;
+
+		// HEAD requests only need metadata, so skip open()
+		if(strcmp(client->method, "HEAD") != 0) {
+			client->fd = open(client->full_path, O_RDONLY);
+			if(client->fd < 0) {
+				if(errno == ENOENT) {
+					log_message(LOG_WARN, "File not found: %s", client->full_path);
+					send_error_response(404, client);
+				} else if(errno == EACCES) {
+					log_message(LOG_WARN, "Permission denied: %s", client->full_path);
+					send_error_response(403, client);
+				} else {
+					log_message(LOG_ERROR, "Failed to open file %s: %s",
+								client->full_path, strerror(errno));
+					send_error_response(500, client);
+				}
+				client->connection_status = 0;
+				ok = 0;
+			}
+		}
+
+		if(ok && send_file_response(client, cache_node) < 0) {
+			log_message(LOG_ERROR, "Failed to send file response");
+			client->connection_status = 0;
+		}
+	}
+
+	free(last_mod_copy);
+}
+
+// Accepts one connection from a listening socket and hands it to the thread pool.
+// Pass ssl_ctx = NULL for plain HTTP. The TLS handshake happens later, in the worker.
+static void accept_and_queue(int listen_sock, SSL_CTX* ssl_ctx) {
+	struct sockaddr_storage ss;
+	socklen_t len = sizeof(ss);
+
+	int client_fd = accept(listen_sock, (struct sockaddr*)&ss, &len);
+	if(client_fd < 0) {
+		if(errno == EMFILE || errno == ENFILE) {
+			log_message(LOG_ERROR, "accept(): out of file descriptors");
+			struct timespec delay = { .tv_sec = 0, .tv_nsec = 100000000 };
+			nanosleep(&delay, NULL);
+		} else if(errno != EINTR) {
+			log_message(LOG_ERROR, "accept() failed: %s", strerror(errno));
+		}
+		return;
+	}
+
+	char ip[INET6_ADDRSTRLEN];
+	int  port;
+	int  ipv6 = (ss.ss_family == AF_INET6);
+
+	if(ipv6) {
+		struct sockaddr_in6* a = (struct sockaddr_in6*)&ss;
+		inet_ntop(AF_INET6, &a->sin6_addr, ip, sizeof(ip));
+		port = ntohs(a->sin6_port);
+	} else {
+		struct sockaddr_in* a = (struct sockaddr_in*)&ss;
+		inet_ntop(AF_INET, &a->sin_addr, ip, sizeof(ip));
+		port = ntohs(a->sin_port);
+	}
+
+	SSL* ssl = NULL;
+	if(ssl_ctx) {
+		ssl = SSL_new(ssl_ctx);
+		if(!ssl) {
+			close(client_fd);
+			return;
+		}
+		SSL_set_fd(ssl, client_fd);   // no handshake here
+	}
+
+	thread_args* args = malloc(sizeof(thread_args));
+	if(!args) {
+		if(ssl)
+			SSL_free(ssl);
+		close(client_fd);
+		return;
+	}
+
+	args->client_fd   = client_fd;
+	args->ssl         = ssl;
+	args->client_port = port;
+	snprintf(args->client_ip, sizeof(args->client_ip), "%s", ip);
+
+	if(ipv6)
+		log_message(LOG_INFO, "New %s connection from [%s]:%d", ssl ? "HTTPS" : "HTTP", ip, port);
+	else
+		log_message(LOG_INFO, "New %s connection from %s:%d", ssl ? "HTTPS" : "HTTP", ip, port);
+
+	if(threadpool_add_work(g_thread_pool, handle_client_thread, args) != 0) {
+		log_message(LOG_WARN, "Thread pool queue full, rejecting connection");
+		if(ssl)
+			SSL_free(ssl);
+		close(client_fd);
+		free(args);
+	}
+}
+
 void* handle_client_thread(void* arg) {
 	thread_args* args = (thread_args*)arg;
 	extern struct server_config g_config;
+	int requests_served = 0;
 
-	// 30-second idle timeout so keep-alive threads don't hold indefinitely.
-	struct timeval tv = { .tv_sec = 30, .tv_usec = 0 };
-
+	// Timeouts first, so nothing below can block forever
+	struct timeval tv = { .tv_sec = HANDSHAKE_TIMEOUT_SEC, .tv_usec = 0 };
 	setsockopt(args->client_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+	tv.tv_sec = SEND_TIMEOUT_SEC;
+	setsockopt(args->client_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
-	// IP and port are already resolved at accept() time for both IPv4 and IPv6.
+	// TLS handshake now runs here in the worker, not in the accept loop
+	if(args->ssl) {
+		if(SSL_accept(args->ssl) <= 0) {
+			ERR_clear_error();
+			SSL_free(args->ssl);
+			args->ssl = NULL;       // so cleanup doesn't touch it again
+			goto cleanup;
+		}
+	}
+
+	// Idle timeout between requests
+	tv.tv_sec = KEEPALIVE_TIMEOUT_SEC;
+	setsockopt(args->client_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
 	while(1) {
 		char request_buffer[8192];
@@ -176,6 +329,7 @@ void* handle_client_thread(void* arg) {
 				log_message(LOG_INFO, "Keep-alive idle timeout, closing connection");
 			else
 				log_message(LOG_WARN, "Client disconnected or read error");
+			ERR_clear_error();
 			goto cleanup;
 		}
 
@@ -190,6 +344,10 @@ void* handle_client_thread(void* arg) {
 
 		client->client_ip   = strdup(args->client_ip);
 		client->client_port = args->client_port;
+
+		// Cap requests per connection: the response will say "Connection: close"
+		if(++requests_served >= MAX_REQUESTS_PER_CONN)
+			client->connection_status = 0;
 
 		log_message(LOG_INFO, "Request from %s:%d - %s %s %s",
 					client->client_ip, client->client_port,
@@ -217,7 +375,6 @@ void* handle_client_thread(void* arg) {
 				log_message(LOG_WARN, "Unsupported method: %s", client->method);
 				send_error_response(501, client);
 			}
-
 			free_client(client);
 			goto cleanup;
 		}
@@ -247,7 +404,7 @@ void* handle_client_thread(void* arg) {
 
 		log_message(LOG_INFO, "Resolved path: %s", client->full_path);
 
-		// Check API endpoint
+		// API endpoint
 		if(strncmp(client->path, "/api/", 5) == 0) {
 			log_message(LOG_INFO, "API endpoint detected - %s", client->full_path);
 			handle_api_request(client);
@@ -264,83 +421,22 @@ void* handle_client_thread(void* arg) {
 
 			for(int i = 0; protected_prefixes[i]; i++) {
 				if(strncmp(client->path, protected_prefixes[i],
-							strlen(protected_prefixes[i])) == 0) {
+						   strlen(protected_prefixes[i])) == 0) {
 					is_protected = 1;
 					break;
 				}
 			}
 
-			if(is_protected) {
-				const char* user = client->session_token
-					? session_get_user(client->session_token) : NULL;
-				if(!user) {
-					log_message(LOG_INFO, "Unauthenticated access to %s - redirecting to login",
-								client->path);
-					send_redirect_response("/login.html", client);
-					free_client(client);
-					goto cleanup;
-				}
-			}
-		}
-
-		pthread_rwlock_rdlock(&g_cache_rwlock);
-		struct node_t* cache_node = cache_lookup(g_cache_tree, client->full_path);
-
-		// Check If-Modified-Since header
-		if(cache_node && cache_node->last_modified && client->modified_since) {
-			if(compare_http_dates(cache_node->last_modified, client->modified_since) <= 0) {
-				log_message(LOG_INFO, "Resource not modified (If-Modified-Since) - sending 304");
-				send_not_modified_response(client, cache_node);
-				int keep_alive = client->connection_status;
+			if(is_protected && !session_is_valid(client->session_token)) {
+				log_message(LOG_INFO, "Unauthenticated access to %s - redirecting to login",
+							client->path);
+				send_redirect_response("/login.html", client);
 				free_client(client);
-				pthread_rwlock_unlock(&g_cache_rwlock);
-				if(keep_alive)
-					continue;
 				goto cleanup;
 			}
 		}
 
-		// Check ETag header
-		if(cache_node && client->tag != 0) {
-			if(cache_node->file_hash == client->tag) {
-				log_message(LOG_INFO, "ETag match (client: %u, cache: %u) - sending 304",
-						   client->tag, cache_node->file_hash);
-				send_not_modified_response(client, cache_node);
-				int keep_alive = client->connection_status;
-				free_client(client);
-				pthread_rwlock_unlock(&g_cache_rwlock);
-				if(keep_alive)
-					continue;
-				goto cleanup;
-			}
-		}
-
-		// HEAD requests only need metadata — skip open
-		if(strcmp(client->method, "HEAD") != 0) {
-			client->fd = open(client->full_path, O_RDONLY);
-			if(client->fd < 0) {
-				if(errno == ENOENT) {
-					log_message(LOG_WARN, "File not found: %s", client->full_path);
-					send_error_response(404, client);
-				} else if(errno == EACCES) {
-					log_message(LOG_WARN, "Permission denied: %s", client->full_path);
-					send_error_response(403, client);
-				} else {
-					log_message(LOG_ERROR, "Failed to open file %s: %s",
-							   client->full_path, strerror(errno));
-					send_error_response(500, client);
-				}
-
-				free_client(client);
-				pthread_rwlock_unlock(&g_cache_rwlock);
-				goto cleanup;
-			}
-		}
-
-		int result = send_file_response(client, cache_node);
-		pthread_rwlock_unlock(&g_cache_rwlock);
-		if(result < 0)
-			log_message(LOG_ERROR, "Failed to send file response");
+		serve_static(client);
 
 		int keep_alive = client->connection_status;
 		free_client(client);
@@ -355,8 +451,6 @@ cleanup:
 	}
 
 	close(args->client_fd);
-
-	// Free thread arguments
 	free(args);
 
 	return NULL;
@@ -605,6 +699,7 @@ int main(int argc, char** argv) {
 	printf("Press Ctrl+C to shutdown\n");
 	printf("Send SIGUSR1 (kill -USR1 %d) to refresh cache\n", getpid());
 
+	time_t last_session_cleanup = time(NULL);
 	// Main server loop
 	while(!g_shutdown) {
 		if(g_shutdown)
@@ -621,6 +716,13 @@ int main(int argc, char** argv) {
 
 			g_refresh_cache = 0;
 			log_message(LOG_INFO, "Cache refresh complete");
+		}
+
+		// Remove expired sessions every 5 minutes
+		time_t now_t = time(NULL);
+		if(now_t - last_session_cleanup >= 300) {
+			session_cleanup_expired();
+			last_session_cleanup = now_t;
 		}
 
 		// Setup select() for all active sockets (IPv4 + optional IPv6)
@@ -661,137 +763,17 @@ int main(int argc, char** argv) {
 			continue;
 		}
 
-		// ── IPv4 HTTP ──────────────────────────────────────────────────────────
-		if(FD_ISSET(http_sock, &read_fds)) {
-			struct sockaddr_in ca;
-			socklen_t al = sizeof(ca);
-			int client_fd = accept(http_sock, (struct sockaddr*)&ca, &al);
-			if(client_fd < 0) {
-				if(errno != EINTR)
-					log_message(LOG_ERROR, "accept() HTTP4: %s", strerror(errno));
-			} else {
-				thread_args* args = malloc(sizeof(thread_args));
-				if(!args) {
-					close(client_fd);
-				} else {
-					args->client_fd   = client_fd;
-					args->ssl         = NULL;
-					args->client_port = ntohs(ca.sin_port);
-					inet_ntop(AF_INET, &ca.sin_addr, args->client_ip, sizeof(args->client_ip));
-					log_message(LOG_INFO, "New HTTP connection from %s:%d", args->client_ip, args->client_port);
-					if(threadpool_add_work(g_thread_pool, handle_client_thread, args) != 0) {
-						log_message(LOG_WARN, "Thread pool queue full, rejecting connection");
-						close(client_fd); free(args);
-					}
-				}
-			}
-		}
+		if(FD_ISSET(http_sock, &read_fds))
+			accept_and_queue(http_sock, NULL);
 
-		// ── IPv4 HTTPS ─────────────────────────────────────────────────────────
-		if(FD_ISSET(https_sock, &read_fds)) {
-			struct sockaddr_in ca;
-			socklen_t al = sizeof(ca);
-			int client_fd = accept(https_sock, (struct sockaddr*)&ca, &al);
-			if(client_fd < 0) {
-				if(errno != EINTR)
-					log_message(LOG_ERROR, "accept() HTTPS4: %s", strerror(errno));
-			} else {
-				SSL* ssl = SSL_new(ssl_ctx);
-				if(!ssl) {
-					close(client_fd);
-				} else {
-					SSL_set_fd(ssl, client_fd);
-					if(SSL_accept(ssl) <= 0) {
-						ERR_clear_error();
-						SSL_free(ssl);
-						close(client_fd);
-					} else {
-						thread_args* args = malloc(sizeof(thread_args));
-						if(!args) {
-							SSL_shutdown(ssl);
-							SSL_free(ssl);
-							close(client_fd);
-						} else {
-							args->client_fd   = client_fd;
-							args->ssl         = ssl;
-							args->client_port = ntohs(ca.sin_port);
-							inet_ntop(AF_INET, &ca.sin_addr, args->client_ip, sizeof(args->client_ip));
-							log_message(LOG_INFO, "New HTTPS connection from %s:%d", args->client_ip, args->client_port);
-							if(threadpool_add_work(g_thread_pool, handle_client_thread, args) != 0) {
-								log_message(LOG_WARN, "Thread pool queue full, rejecting connection");
-								SSL_shutdown(ssl); SSL_free(ssl); close(client_fd); free(args);
-							}
-						}
-					}
-				}
-			}
-		}
+		if(FD_ISSET(https_sock, &read_fds))
+			accept_and_queue(https_sock, ssl_ctx);
 
-		// ── IPv6 HTTP ──────────────────────────────────────────────────────────
-		if(http6_sock >= 0 && FD_ISSET(http6_sock, &read_fds)) {
-			struct sockaddr_in6 ca;
-			socklen_t al = sizeof(ca);
-			int client_fd = accept(http6_sock, (struct sockaddr*)&ca, &al);
-			if(client_fd < 0) {
-				if(errno != EINTR)
-					log_message(LOG_ERROR, "accept() HTTP6: %s", strerror(errno));
-			} else {
-				thread_args* args = malloc(sizeof(thread_args));
-				if(!args) {
-					close(client_fd);
-				} else {
-					args->client_fd   = client_fd;
-					args->ssl         = NULL;
-					args->client_port = ntohs(ca.sin6_port);
-					inet_ntop(AF_INET6, &ca.sin6_addr, args->client_ip, sizeof(args->client_ip));
-					log_message(LOG_INFO, "New HTTP connection from [%s]:%d", args->client_ip, args->client_port);
-					if(threadpool_add_work(g_thread_pool, handle_client_thread, args) != 0) {
-						log_message(LOG_WARN, "Thread pool queue full, rejecting connection");
-						close(client_fd); free(args);
-					}
-				}
-			}
-		}
+		if(http6_sock >= 0 && FD_ISSET(http6_sock, &read_fds))
+			accept_and_queue(http6_sock, NULL);
 
-		// ── IPv6 HTTPS ─────────────────────────────────────────────────────────
-		if(https6_sock >= 0 && FD_ISSET(https6_sock, &read_fds)) {
-			struct sockaddr_in6 ca;
-			socklen_t al = sizeof(ca);
-			int client_fd = accept(https6_sock, (struct sockaddr*)&ca, &al);
-			if(client_fd < 0) {
-				if(errno != EINTR)
-					log_message(LOG_ERROR, "accept() HTTPS6: %s", strerror(errno));
-			} else {
-				SSL* ssl = SSL_new(ssl_ctx);
-				if(!ssl) {
-					close(client_fd);
-				} else {
-					SSL_set_fd(ssl, client_fd);
-					if(SSL_accept(ssl) <= 0) {
-						ERR_clear_error();
-						SSL_free(ssl);
-						close(client_fd);
-					} else {
-						thread_args* args = malloc(sizeof(thread_args));
-						if(!args) {
-							SSL_shutdown(ssl);
-							SSL_free(ssl);
-							close(client_fd);
-						} else {
-							args->client_fd   = client_fd;
-							args->ssl         = ssl;
-							args->client_port = ntohs(ca.sin6_port);
-							inet_ntop(AF_INET6, &ca.sin6_addr, args->client_ip, sizeof(args->client_ip));
-							log_message(LOG_INFO, "New HTTPS connection from [%s]:%d", args->client_ip, args->client_port);
-							if(threadpool_add_work(g_thread_pool, handle_client_thread, args) != 0) {
-								log_message(LOG_WARN, "Thread pool queue full, rejecting connection");
-								SSL_shutdown(ssl); SSL_free(ssl); close(client_fd); free(args);
-							}
-						}
-					}
-				}
-			}
-		}
+		if(https6_sock >= 0 && FD_ISSET(https6_sock, &read_fds))
+			accept_and_queue(https6_sock, ssl_ctx);
 	}
 
 	// Shutdown sequence

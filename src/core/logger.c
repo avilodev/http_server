@@ -6,6 +6,8 @@
 static FILE*           log_fp    = NULL;
 static pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+#define LOG_MIN_LEVEL LOG_INFO
+
 void log_init(const char* log_file) {
 	pthread_mutex_lock(&log_mutex);
 	log_fp = fopen(log_file, "a");
@@ -13,13 +15,15 @@ void log_init(const char* log_file) {
 }
 
 void log_message(log_level level, const char* format, ...) {
-	if(!log_fp)
+	if(!log_fp || level < LOG_MIN_LEVEL)
 		return;
 
 	time_t now = time(NULL);
+	struct tm tm_buf;
+	gmtime_r(&now, &tm_buf);
+
 	char timestamp[64];
-	strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ",
-			 gmtime(&now));
+	strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", &tm_buf);
 
 	const char* level_str[] = {"DEBUG", "INFO", "WARN", "ERROR"};
 

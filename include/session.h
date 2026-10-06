@@ -7,8 +7,10 @@
 // Creates a new session for username.
 char* session_create(const char* username);
 
-// Returns the username for a valid, non-expired session token, or NULL.
+// Returns the username for a valid, non-expired session token, or NULL. 
 const char* session_get_user(const char* token);
+
+int session_is_valid(const char* token);
 
 // Removes the session identified by token.
 void session_destroy(const char* token);

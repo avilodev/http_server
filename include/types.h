@@ -21,6 +21,11 @@
 #define SMALL_ALLOCATE 256
 #define LARGE_ALLOCATE 16384
 
+#define HANDSHAKE_TIMEOUT_SEC   10   // max time for the TLS handshake
+#define KEEPALIVE_TIMEOUT_SEC   10   // max idle time between requests
+#define SEND_TIMEOUT_SEC        30   // max time a single send can block
+#define MAX_REQUESTS_PER_CONN  100   // then close the connection
+
 // Forward declarations
 struct node_t;
 

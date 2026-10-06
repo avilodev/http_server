@@ -1,5 +1,8 @@
 #include "api.h"
 #include "session.h"
+#include "request.h"
+
+#include <stdarg.h>
 
 api_route api_routes[] = {
 	{ "/api/status", handle_api_status },
@@ -64,15 +67,44 @@ void handle_api_info(client_t* client)
 	send_api_response(client, 200, "application/json", response);
 }
 
-void handle_api_files(client_t* client) {
-	char* path = get_query_param(client, "path");
-	// get_query_param returns a heap-allocated string; free after use.
-	const char* effective_path = path ? path : "/";
+// Appends formatted text to buf. Returns -1 (and writes nothing) if it doesn't fit.
+static int json_append(char* buf, size_t cap, size_t* off, const char* fmt, ...) {
+	if(*off >= cap)
+		return -1;
 
-	char full_path[512];
+	va_list ap; 
+	va_start(ap, fmt);
+	int n = vsnprintf(buf + *off, cap - *off, fmt, ap);
+	va_end(ap);
+
+	if(n < 0 || (size_t)n >= cap - *off)
+		return -1;
+
+	*off += (size_t)n;
+	return 0;
+}
+
+void handle_api_files(client_t* client) {
 	extern server_config g_config;
 
-	snprintf(full_path, sizeof(full_path), "%s/public/%s", g_config.webroot, effective_path);
+	char* path = get_query_param(client, "path");
+	const char* effective_path = path ? path : "/";
+
+	// Block "..", "//", and characters that would break the JSON output
+	if(!validate_path(effective_path) || strpbrk(effective_path, "\"\\")) {
+		free(path);
+		send_api_error(client, 403, "FORBIDDEN", "Invalid path");
+		return;
+	}
+
+	char full_path[512];
+	int plen = snprintf(full_path, sizeof(full_path), "%s/public/%s",
+						g_config.webroot, effective_path);
+	if(plen < 0 || (size_t)plen >= sizeof(full_path)) {
+		free(path);
+		send_api_error(client, 404, "NOT_FOUND", "Directory not found");
+		return;
+	}
 
 	DIR* dir = opendir(full_path);
 	if(!dir) {
@@ -81,12 +113,13 @@ void handle_api_files(client_t* client) {
 		return;
 	}
 
-	// Build JSON array of files
 	char response[4096];
-	int offset = snprintf(response, sizeof(response),
+	size_t offset = 0;
+	const size_t entries_cap = sizeof(response) - 32;  // leave room for the closing text
+
+	json_append(response, sizeof(response), &offset,
 		"{\n  \"success\": true,\n  \"data\": {\n    \"path\": \"%s\",\n    \"files\": [\n",
-		effective_path
-	);
+		effective_path);
 
 	struct dirent* entry;
 	int first = 1;
@@ -95,37 +128,31 @@ void handle_api_files(client_t* client) {
 		if(entry->d_name[0] == '.')
 			continue;
 
-		struct stat st;
-		char file_path[1024];  // <-- INCREASE THIS (512 + 255 + some buffer)
+		char file_path[1024];
 		snprintf(file_path, sizeof(file_path), "%s/%s", full_path, entry->d_name);
 
-		if(stat(file_path, &st) == 0) {
-			if(!first)
-				offset += snprintf(response + offset, sizeof(response) - offset, ",\n");
-			first = 0;
+		struct stat st;
+		if(stat(file_path, &st) != 0)
+			continue;
 
-			// Check if we have enough space left in response buffer
-			if(offset >= (int)sizeof(response) - 200)
-				break;  // Prevent buffer overflow
-
-			offset += snprintf(response + offset, sizeof(response) - offset,
-				"      {\n"
+		if(json_append(response, entries_cap, &offset,
+				"%s      {\n"
 				"        \"name\": \"%s\",\n"
 				"        \"type\": \"%s\",\n"
 				"        \"size\": %ld,\n"
 				"        \"modified\": %ld\n"
 				"      }",
+				first ? "" : ",\n",
 				entry->d_name,
 				S_ISDIR(st.st_mode) ? "directory" : "file",
-				st.st_size,
-				(long)st.st_mtime
-			);
-		}
+				(long)st.st_size,
+				(long)st.st_mtime) < 0)
+			break;  // out of space: stop adding entries
+
+		first = 0;
 	}
 
-	offset += snprintf(response + offset, sizeof(response) - offset,
-		"\n    ]\n  }\n}"
-	);
+	json_append(response, sizeof(response), &offset, "\n    ]\n  }\n}");
 
 	closedir(dir);
 	free(path);
